@@ -6,10 +6,12 @@
 //
 
 import SwiftUI
+import AVFoundation
 
 struct AddAlbumView: View {
     @Binding var isPresented: Bool
     @State private var albumName: String = ""
+    @State private var artists: String = ""
     @State private var albumArtwork: UIImage? = nil
     @State private var selectedFiles: [URL] = []
     @State private var isFilePickerPresented = false
@@ -21,6 +23,12 @@ struct AddAlbumView: View {
         NavigationView {
             VStack {
                 TextField("Album Name", text: $albumName)
+                    .padding()
+                    .background(Color.gray.opacity(0.2))
+                    .cornerRadius(8)
+                    .padding([.leading, .trailing])
+                
+                TextField("Artist(s)", text: $artists)
                     .padding()
                     .background(Color.gray.opacity(0.2))
                     .cornerRadius(8)
@@ -98,8 +106,16 @@ struct AddAlbumView: View {
                 }
                 
                 List {
-                    ForEach(selectedFiles, id: \.self) { file in
-                        Text(file.deletingPathExtension().lastPathComponent)
+                    ForEach(Array(selectedFiles.enumerated()), id: \.element) { index, element in
+                        HStack {
+                            Text("\(index+1)")
+                                .foregroundColor(.gray)
+                            Text(element.deletingPathExtension().lastPathComponent)
+                                .padding(.leading, 10)
+                            Spacer()
+                            Text(getTrackDuration(from: element))
+                                .foregroundColor(.gray)
+                        }
                     }
                     .onDelete(perform: isEditing ? deleteFile : nil)
                     .onMove(perform: isEditing ? moveFile : nil)
@@ -127,7 +143,7 @@ struct AddAlbumView: View {
                 }
                 .foregroundColor(.blue),
                 trailing: Button("Save") {
-                    let newAlbum = Album(name: albumName, artwork: albumArtwork, tracks: selectedFiles)
+                    let newAlbum = Album(name: albumName, artists: artists, artwork: albumArtwork, tracks: selectedFiles)
                     AlbumManager.shared.saveAlbum(newAlbum)
                     isPresented = false
                 }
@@ -143,6 +159,20 @@ struct AddAlbumView: View {
         }
         .sheet(isPresented: $isImagePickerPresented) {
             ImagePicker(selectedImage: $albumArtwork)
+        }
+    }
+    
+    func getTrackDuration(from url: URL) -> String {
+        let asset = AVURLAsset(url: url)
+        let duration = asset.duration
+        let durationInSeconds = CMTimeGetSeconds(duration)
+        if durationInSeconds.isFinite {
+            let minutes = Int(durationInSeconds) / 60
+            let seconds = Int(durationInSeconds.truncatingRemainder(dividingBy: 60))
+            let stringSeconds = seconds < 10 ? "0\(seconds)" : "\(seconds)"
+            return "\(minutes):\(stringSeconds)"
+        } else {
+            return ""
         }
     }
         

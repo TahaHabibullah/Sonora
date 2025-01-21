@@ -5,22 +5,27 @@
 //  Created by Taha Habibullah on 1/17/25.
 //
 import SwiftUI
+import AVFoundation
 
 struct AlbumView: View {
+    @Environment(\.presentationMode) var presentationMode
     @State private var isFilePickerPresented = false
+    @State private var showDeleteConfirmation = false
     @State private var isEditing = false
-    @State private var originalFiles: [URL] = []
+    @State private var isEditingName = false
+    @State private var isEditingArtists = false
     @State var album: Album
+    @FocusState private var nameFieldFocused: Bool
+    @FocusState private var artistFieldFocused: Bool
     
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 0) {
             if let artworkData = album.artwork,
                let artwork = UIImage(data: artworkData) {
                 Image(uiImage: artwork)
                     .resizable()
                     .scaledToFit()
                     .frame(width: 200, height: 200)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
                     .shadow(color: .gray, radius: 10)
             } else {
                 Image(systemName: "photo")
@@ -28,31 +33,71 @@ struct AlbumView: View {
                     .scaledToFit()
                     .frame(width: 200, height: 200)
                     .background(Color.gray.opacity(0.3))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
                     .shadow(color: .gray, radius: 10)
             }
             
-            Text(album.name)
-                .font(.largeTitle)
-                .bold()
-                .foregroundColor(.white)
+            if isEditingName {
+                TextField(album.name, text: $album.name)
+                    .font(.largeTitle)
+                    .bold()
+                    .foregroundColor(.white)
+                    .padding(.top, 20)
+                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
+                    .focused($nameFieldFocused)
+                    .onAppear {
+                        nameFieldFocused = true
+                    }
+            }
+            else {
+                Text(album.name)
+                    .font(.largeTitle)
+                    .bold()
+                    .foregroundColor(.white)
+                    .padding(.top, 20)
+                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
+            }
+            if isEditingArtists {
+                TextField(album.artists, text: $album.artists)
+                    .font(.headline)
+                    .foregroundColor(.gray)
+                    .padding(.bottom, 10)
+                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
+                    .focused($artistFieldFocused)
+                    .onAppear {
+                        artistFieldFocused = true
+                    }
+            }
+            else {
+                Text(album.artists)
+                    .font(.headline)
+                    .foregroundColor(.gray)
+                    .padding(.bottom, 10)
+                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
+            }
             
             List {
                 ForEach(Array(album.tracks.enumerated()), id: \.element) { index, element in
+                    let assetUrl = album.tracks[index]
                     HStack {
-                        Text("\(index)")
+                        Text("\(index+1)")
                             .foregroundColor(.gray)
                         Text(element.deletingPathExtension().lastPathComponent)
                             .padding(.leading, 10)
                         Spacer()
+                        Text(getTrackDuration(from: assetUrl))
+                            .foregroundColor(.gray)
                         Menu {
                             Button(action: {
                             }) {
-                                Label("Add to playlist", systemImage: "plus.square")
+                                Label("Add to Playlist", systemImage: "plus.square")
                             }
                             Button(action: {
                             }) {
-                                Label("Rename track", systemImage: "pencil")
+                                Label("Rename Track", systemImage: "pencil")
                             }
                         } label: {
                             Image(systemName: "ellipsis")
@@ -71,9 +116,17 @@ struct AlbumView: View {
         .padding()
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                if isEditing {
+                if isEditing || isEditingName || isEditingArtists {
                     Button(action: {
-                        confirmChanges()
+                        if isEditing {
+                            confirmChanges()
+                        }
+                        else if isEditingName {
+                            confirmNameChanges()
+                        }
+                        else if isEditingArtists {
+                            confirmArtistsChanges()
+                        }
                     }) {
                         Text("Done")
                             .foregroundColor(.blue)
@@ -84,16 +137,27 @@ struct AlbumView: View {
                         Button(action: {
                             isFilePickerPresented = true
                         }) {
-                            Label("Add files to album", systemImage: "music.note.list")
+                            Label("Add Files to Album", systemImage: "music.note.list")
+                        }
+                        Button(action: {
+                            isEditingName = true;
+                        }) {
+                            Label("Edit Title", systemImage: "pencil")
+                        }
+                        Button(action: {
+                            isEditingArtists = true;
+                        }) {
+                            Label("Edit Artists", systemImage: "pencil")
                         }
                         Button(action: {
                             isEditing = true
                         }) {
-                            Label("Edit tracks", systemImage: "pencil")
+                            Label("Edit Tracks", systemImage: "pencil")
                         }
                         Button(action: {
+                            showDeleteConfirmation = true
                         }) {
-                            Label("Delete album", systemImage: "trash.slash")
+                            Label("Delete Album", systemImage: "trash.slash")
                         }
                     } label: {
                         HStack {
@@ -103,6 +167,16 @@ struct AlbumView: View {
                         .foregroundColor(.blue)
                     }
                     .padding()
+                    .confirmationDialog("Are you sure you want to delete this album?", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+                        Button("Delete", role: .destructive) {
+                            AlbumManager.shared.deleteAlbum(album)
+                            presentationMode.wrappedValue.dismiss()
+                            showDeleteConfirmation = false
+                        }
+                        Button("Cancel", role: .cancel) {
+                            showDeleteConfirmation = false
+                        }
+                    }
                 }
             }
         }
@@ -115,16 +189,37 @@ struct AlbumView: View {
         }
     }
     
+    func getTrackDuration(from url: URL) -> String {
+        let asset = AVURLAsset(url: url)
+        let duration = asset.duration
+        let durationInSeconds = CMTimeGetSeconds(duration)
+        if durationInSeconds.isFinite {
+            let minutes = Int(durationInSeconds) / 60
+            let seconds = Int(durationInSeconds.truncatingRemainder(dividingBy: 60))
+            let stringSeconds = seconds < 10 ? "0\(seconds)" : "\(seconds)"
+            return "\(minutes):\(stringSeconds)"
+        } else {
+            return ""
+        }
+    }
+    
     private func deleteFile(at offsets: IndexSet) {
         album.tracks.remove(atOffsets: offsets)
-        if album.tracks.isEmpty {
-            isEditing = false
-        }
     }
     
     private func confirmChanges() {
         AlbumManager.shared.replaceAlbum(album)
         isEditing = false
+    }
+    
+    private func confirmNameChanges() {
+        AlbumManager.shared.replaceAlbum(album)
+        isEditingName = false
+    }
+    
+    private func confirmArtistsChanges() {
+        AlbumManager.shared.replaceAlbum(album)
+        isEditingArtists = false
     }
 
     private func moveFile(from source: IndexSet, to destination: Int) {
@@ -136,7 +231,6 @@ struct AlbumView: View {
         case .success(let urls):
             album.tracks.append(contentsOf: urls)
             AlbumManager.shared.replaceAlbum(album)
-            
         case .failure(let error):
             print("File selection error: \(error.localizedDescription)")
         }

@@ -11,12 +11,14 @@ import SwiftUI
 struct Album: Codable, Identifiable {
     let id: UUID
     var name: String
+    var artists: String
     var artwork: Data?
     var tracks: [URL]
     
-    init(name: String, artwork: UIImage?, tracks: [URL]) {
+    init(name: String, artists: String, artwork: UIImage?, tracks: [URL]) {
         self.id = UUID()
         self.name = name
+        self.artists = artists
         self.artwork = artwork?.jpegData(compressionQuality: 0.8)
         self.tracks = tracks
     }
@@ -24,7 +26,8 @@ struct Album: Codable, Identifiable {
 
 class AlbumManager {
     static let shared = AlbumManager()
-    private let storageKey = "savedAlbums"
+    private let storageKey = "sonoraAlbums"
+    private let fileManager = FileManager.default
     
     func fetchAlbums() -> [Album] {
         guard let data = UserDefaults.standard.data(forKey: storageKey) else {
@@ -43,7 +46,8 @@ class AlbumManager {
     
     func replaceAlbum(_ album: Album) {
         var albums = fetchAlbums()
-        albums[albums.firstIndex(where: { $0.id == album.id })!] = album
+        albums.removeAll { $0.id == album.id }
+        albums.append(album)
         if let data = try? JSONEncoder().encode(albums) {
             UserDefaults.standard.set(data, forKey: storageKey)
         }
