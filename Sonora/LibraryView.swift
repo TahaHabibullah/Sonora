@@ -16,7 +16,7 @@ struct LibraryView: View {
     var body: some View {
         VStack() {
             NavigationView {
-                VStack {
+                VStack(spacing: 0) {
                     List(albums) { album in
                         NavigationLink(destination: AlbumView(album: album)) {
                             HStack {
@@ -43,12 +43,10 @@ struct LibraryView: View {
                             }
                         }
                     }
-                    .navigationTitle("Library")
                     .onAppear {
                         albums = AlbumManager.shared.fetchAlbums()
                     }
                 }
-                .contentMargins(.top, 40)
                 .navigationTitle("Library")
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {

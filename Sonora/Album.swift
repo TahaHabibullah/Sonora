@@ -12,6 +12,7 @@ struct Album: Codable, Identifiable {
     let id: UUID
     var name: String
     var artists: String
+    var titles: [String]
     var artwork: Data?
     var tracks: [URL]
     
@@ -19,15 +20,19 @@ struct Album: Codable, Identifiable {
         self.id = UUID()
         self.name = name
         self.artists = artists
+        self.titles = tracks.map { $0.deletingPathExtension().lastPathComponent }
         self.artwork = artwork?.jpegData(compressionQuality: 0.8)
         self.tracks = tracks
+    }
+    
+    mutating func replaceArtwork(_ artwork: UIImage) {
+        self.artwork = artwork.jpegData(compressionQuality: 0.8)
     }
 }
 
 class AlbumManager {
     static let shared = AlbumManager()
     private let storageKey = "sonoraAlbums"
-    private let fileManager = FileManager.default
     
     func fetchAlbums() -> [Album] {
         guard let data = UserDefaults.standard.data(forKey: storageKey) else {

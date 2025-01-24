@@ -9,11 +9,14 @@ import SwiftUI
 
 @main
 struct SonoraApp: App {
+    @StateObject private var playQueue = PlayQueue()
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .preferredColorScheme(.dark)
                 .environment(\.colorScheme, .dark)
+                .environmentObject(playQueue)
         }
     }
 }

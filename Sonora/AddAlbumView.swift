@@ -163,6 +163,7 @@ struct AddAlbumView: View {
     }
     
     func getTrackDuration(from url: URL) -> String {
+        url.startAccessingSecurityScopedResource()
         let asset = AVURLAsset(url: url)
         let duration = asset.duration
         let durationInSeconds = CMTimeGetSeconds(duration)
