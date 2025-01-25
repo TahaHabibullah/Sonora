@@ -35,12 +35,11 @@ struct AlbumView: View {
                         .frame(width: 200, height: 200)
                         .shadow(color: .gray, radius: 10)
                 } else {
-                    Image(systemName: "photo")
+                    Image(systemName: "music.note.list")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 200, height: 200)
                         .background(Color.gray.opacity(0.3))
-                        .shadow(color: .gray, radius: 10)
                 }
                 
                 if isEditingName {
@@ -89,7 +88,7 @@ struct AlbumView: View {
                 List {
                     ForEach(Array(album.tracks.enumerated()), id: \.element) { index, element in
                         Button(action: {
-                            playQueue.startQueue(from: element, in: album.tracks)
+                            playQueue.startQueue(from: element, in: album)
                         }) {
                             HStack {
                                 Text("\(index+1)")

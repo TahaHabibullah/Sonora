@@ -21,12 +21,12 @@ struct Album: Codable, Identifiable {
         self.name = name
         self.artists = artists
         self.titles = tracks.map { $0.deletingPathExtension().lastPathComponent }
-        self.artwork = artwork?.jpegData(compressionQuality: 0.8)
+        self.artwork = artwork?.jpegData(compressionQuality: 1)
         self.tracks = tracks
     }
     
     mutating func replaceArtwork(_ artwork: UIImage) {
-        self.artwork = artwork.jpegData(compressionQuality: 0.8)
+        self.artwork = artwork.jpegData(compressionQuality: 1)
     }
 }
 

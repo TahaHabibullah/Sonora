@@ -11,14 +11,30 @@ import AVFoundation
 
 class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var currentIndex: Int? = nil
+    @Published var name: String = ""
     @Published var tracks: [URL] = []
+    @Published var titles: [String] = []
+    @Published var artists: [String] = []
+    @Published var artworks: [Data?] = []
     @Published var isPlaying: Bool = false
     @Published var audioPlayer: AVAudioPlayer?
 
-    func startQueue(from track: URL, in album: [URL]) {
-        currentIndex = album.firstIndex(of: track)
+    func startQueue(from track: URL, in list: [URL]) {
+        currentIndex = list.firstIndex(of: track)
         if currentIndex != nil {
-            tracks = album
+            tracks = list
+            playCurrentTrack()
+        }
+    }
+    
+    func startQueue(from track: URL, in album: Album) {
+        currentIndex = album.tracks.firstIndex(of: track)
+        if currentIndex != nil {
+            name = album.name
+            tracks = album.tracks
+            titles = album.titles
+            artworks = Array(repeating: album.artwork!, count: album.titles.count)
+            artists = Array(repeating: album.artists, count: album.titles.count)
             playCurrentTrack()
         }
     }

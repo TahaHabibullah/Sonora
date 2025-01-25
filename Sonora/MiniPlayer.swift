@@ -9,13 +9,14 @@ import SwiftUI
 
 struct MiniPlayer: View {
     @EnvironmentObject var playQueue: PlayQueue
+    @State private var isPlayerViewPresented = false
+    @State private var isHighlighted: Bool = false
+    @State private var size: CGSize?
 
     var body: some View {
-        let currentIndex = playQueue.currentIndex
         HStack {
-            if currentIndex != nil {
-                Text(playQueue.tracks[currentIndex!]
-                    .deletingPathExtension().lastPathComponent)
+            if let currentIndex = playQueue.currentIndex {
+                Text(playQueue.titles[currentIndex])
                 .font(.headline)
                 .lineLimit(1)
                 .truncationMode(.tail)
@@ -47,6 +48,23 @@ struct MiniPlayer: View {
             }
         }
         .padding(.bottom, 8)
+        .padding(.horizontal, 20)
+        .frame(width: UIScreen.main.bounds.width, height: 50)
+        .contentShape(Rectangle())
         .accentColor(.gray)
+        .onTapGesture {
+            isPlayerViewPresented = true
+        }
+        .gesture(
+            DragGesture(minimumDistance: 20)
+                .onEnded { value in
+                    if value.translation.height < -20 {
+                        isPlayerViewPresented = true
+                    }
+                }
+        )
+        .sheet(isPresented: $isPlayerViewPresented) {
+            PlayerView(isPresented: $isPlayerViewPresented)
+        }
     }
 }
