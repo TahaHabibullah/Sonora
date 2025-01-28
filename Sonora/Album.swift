@@ -14,15 +14,17 @@ struct Album: Codable, Identifiable {
     var artists: String
     var titles: [String]
     var artwork: Data?
-    var tracks: [URL]
+    var tracks: [String]
+    var directory: String
     
-    init(name: String, artists: String, artwork: UIImage?, tracks: [URL]) {
+    init(name: String, artists: String, artwork: UIImage?, tracks: [String], directory: String) {
         self.id = UUID()
         self.name = name
         self.artists = artists
-        self.titles = tracks.map { $0.deletingPathExtension().lastPathComponent }
+        self.titles = tracks.map { URL(fileURLWithPath: $0).deletingPathExtension().lastPathComponent }
         self.artwork = artwork?.jpegData(compressionQuality: 1)
         self.tracks = tracks
+        self.directory = directory
     }
     
     mutating func replaceArtwork(_ artwork: UIImage) {
@@ -38,6 +40,7 @@ class AlbumManager {
         guard let data = UserDefaults.standard.data(forKey: storageKey) else {
             return []
         }
+        let albums = (try? JSONDecoder().decode([Album].self, from: data)) ?? []
         return (try? JSONDecoder().decode([Album].self, from: data)) ?? []
     }
     
@@ -60,9 +63,24 @@ class AlbumManager {
     
     func deleteAlbum(_ album: Album) {
         var albums = fetchAlbums()
+        self.deleteAlbumDirectory(path: album.directory)
         albums.removeAll { $0.id == album.id }
         if let data = try? JSONEncoder().encode(albums) {
             UserDefaults.standard.set(data, forKey: storageKey)
+        }
+    }
+    
+    private func deleteAlbumDirectory(path: String) {
+        let fileManager = FileManager.default
+        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        
+        do {
+            let trackPath = documentsDirectory.appendingPathComponent(path)
+            if fileManager.fileExists(atPath: trackPath.path) {
+                try fileManager.removeItem(at: trackPath)
+            }
+        } catch {
+            print("Failed to delete directory: \(path)")
         }
     }
 }

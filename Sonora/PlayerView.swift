@@ -184,7 +184,7 @@ struct PlayerView: View {
     }
 
     private func startTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
             if let playQueue = playQueue.audioPlayer {
                 sliderValue = playQueue.currentTime / playQueue.duration
             }

@@ -43,9 +43,9 @@ struct LibraryView: View {
                             }
                         }
                     }
-                    .onAppear {
-                        albums = AlbumManager.shared.fetchAlbums()
-                    }
+                }
+                .onAppear {
+                    albums = AlbumManager.shared.fetchAlbums()
                 }
                 .navigationTitle("Library")
                 .toolbar {
@@ -71,6 +71,9 @@ struct LibraryView: View {
                         }
                         .sheet(isPresented: $isAddAlbumPresented) {
                             AddAlbumView(isPresented: $isAddAlbumPresented)
+                                .onDisappear {
+                                    albums = AlbumManager.shared.fetchAlbums()
+                                }
                         }
                         .padding()
                     }

@@ -10,19 +10,30 @@ import SwiftUI
 struct MiniPlayer: View {
     @EnvironmentObject var playQueue: PlayQueue
     @State private var isPlayerViewPresented = false
-    @State private var isHighlighted: Bool = false
-    @State private var size: CGSize?
 
     var body: some View {
         HStack {
             if let currentIndex = playQueue.currentIndex {
+                Image(uiImage: UIImage(data: playQueue.artworks[currentIndex]!)!)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 50, height: 50)
+                    .background(Color.gray)
+                
                 Text(playQueue.titles[currentIndex])
-                .font(.headline)
-                .lineLimit(1)
-                .truncationMode(.tail)
+                    .padding(.leading, 10)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
             else {
+                Image(systemName: "music.note.list")
+                    .font(.subheadline)
+                    .frame(width: 50, height: 50)
+                    .background(Color.gray)
+                
                 Text("Not Playing")
+                    .padding(.leading, 10)
                     .font(.headline)
             }
             Spacer()
@@ -30,39 +41,34 @@ struct MiniPlayer: View {
                 Image(systemName: "backward.fill")
                     .font(.headline)
             }
+            .padding(.trailing, 10)
             if playQueue.isPlaying {
                 Button(action: playQueue.pausePlayback) {
                     Image(systemName: "pause.fill")
                         .font(.title3)
                 }
+                .padding(.trailing, 10)
             }
             else {
                 Button(action: playQueue.resumePlayback) {
                     Image(systemName: "play.fill")
                         .font(.title3)
                 }
+                .padding(.trailing, 10)
             }
             Button(action: playQueue.skipTrack) {
                 Image(systemName: "forward.fill")
                     .font(.headline)
             }
+            .padding(.trailing, 20)
         }
-        .padding(.bottom, 8)
-        .padding(.horizontal, 20)
         .frame(width: UIScreen.main.bounds.width, height: 50)
+        .background(.ultraThinMaterial)
         .contentShape(Rectangle())
         .accentColor(.gray)
         .onTapGesture {
             isPlayerViewPresented = true
         }
-        .gesture(
-            DragGesture(minimumDistance: 20)
-                .onEnded { value in
-                    if value.translation.height < -20 {
-                        isPlayerViewPresented = true
-                    }
-                }
-        )
         .sheet(isPresented: $isPlayerViewPresented) {
             PlayerView(isPresented: $isPlayerViewPresented)
         }

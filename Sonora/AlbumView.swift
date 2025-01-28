@@ -19,6 +19,7 @@ struct AlbumView: View {
     @State private var editingTrackIndex: Int? = nil
     @State private var currentTrackIndex: Int?
     @State private var newArtwork: UIImage? = nil
+    @State private var markedForDeletion: [String] = []
     @State var album: Album
     @FocusState private var nameFieldFocused: Bool
     @FocusState private var artistFieldFocused: Bool
@@ -237,8 +238,12 @@ struct AlbumView: View {
         }
     }
     
-    func getTrackDuration(from url: URL) -> String {
-        let asset = AVURLAsset(url: url)
+    func getTrackDuration(from path: String) -> String {
+        let fileManager = FileManager.default
+        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let trackURL = documentsDirectory.appendingPathComponent(path)
+        
+        let asset = AVURLAsset(url: trackURL)
         let duration = asset.duration
         let durationInSeconds = CMTimeGetSeconds(duration)
         if durationInSeconds.isFinite {
@@ -252,11 +257,13 @@ struct AlbumView: View {
     }
     
     private func deleteFile(at offsets: IndexSet) {
+        markedForDeletion.append(album.tracks[offsets.first!])
         album.tracks.remove(atOffsets: offsets)
         album.titles.remove(atOffsets: offsets)
     }
     
     private func confirmChanges() {
+        deleteFilesFromDocuments(filePaths: markedForDeletion)
         AlbumManager.shared.replaceAlbum(album)
         isEditing = false
     }
@@ -281,11 +288,53 @@ struct AlbumView: View {
         album.titles.move(fromOffsets: source, toOffset: destination)
     }
     
+    func deleteFilesFromDocuments(filePaths: [String]) {
+        let fileManager = FileManager.default
+        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        
+        for path in filePaths {
+            do {
+                let trackPath = documentsURL.appendingPathComponent(path)
+                if fileManager.fileExists(atPath: trackPath.path) {
+                    try fileManager.removeItem(at: trackPath)
+                }
+            } catch {
+                print("Failed to delete file: \(path)")
+            }
+        }
+        markedForDeletion.removeAll()
+    }
+    
+    func copyFilesToDocuments(sourceURLs: [URL], name: String) -> [String] {
+        let fileManager = FileManager.default
+        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let albumDirectory = documentsURL.appendingPathComponent(album.directory)
+        var filePaths: [String] = []
+        
+        for sourceURL in sourceURLs {
+            let destinationURL = albumDirectory.appendingPathComponent(sourceURL.lastPathComponent)
+            let filePath = album.directory + "/" + sourceURL.lastPathComponent
+           
+            if fileManager.fileExists(atPath: destinationURL.path) {
+                continue
+            }
+            
+            do {
+                try fileManager.copyItem(at: sourceURL, to: destinationURL)
+                filePaths.append(filePath)
+            } catch {
+                print("Unable to copy file: \(error.localizedDescription)")
+            }
+        }
+        return filePaths
+    }
+    
     private func handleFileSelection(result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
-            album.tracks.append(contentsOf: urls)
-            album.titles.append(contentsOf: urls.map { $0.deletingPathExtension().lastPathComponent})
+            let filePaths = copyFilesToDocuments(sourceURLs: urls, name: album.name)
+            album.tracks.append(contentsOf: filePaths)
+            album.titles.append(contentsOf: filePaths.map { URL(fileURLWithPath: $0).lastPathComponent })
             AlbumManager.shared.replaceAlbum(album)
         case .failure(let error):
             print("File selection error: \(error.localizedDescription)")

@@ -12,14 +12,14 @@ import AVFoundation
 class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var currentIndex: Int? = nil
     @Published var name: String = ""
-    @Published var tracks: [URL] = []
+    @Published var tracks: [String] = []
     @Published var titles: [String] = []
     @Published var artists: [String] = []
     @Published var artworks: [Data?] = []
     @Published var isPlaying: Bool = false
     @Published var audioPlayer: AVAudioPlayer?
 
-    func startQueue(from track: URL, in list: [URL]) {
+    func startQueue(from track: String, in list: [String]) {
         currentIndex = list.firstIndex(of: track)
         if currentIndex != nil {
             tracks = list
@@ -27,13 +27,13 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         }
     }
     
-    func startQueue(from track: URL, in album: Album) {
+    func startQueue(from track: String, in album: Album) {
         currentIndex = album.tracks.firstIndex(of: track)
         if currentIndex != nil {
             name = album.name
             tracks = album.tracks
             titles = album.titles
-            artworks = Array(repeating: album.artwork!, count: album.titles.count)
+            artworks = Array(repeating: album.artwork, count: album.titles.count)
             artists = Array(repeating: album.artists, count: album.titles.count)
             playCurrentTrack()
         }
@@ -62,8 +62,12 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
 
     private func playCurrentTrack() {
-        let trackURL = tracks[currentIndex!]
+        let fileManager = FileManager.default
         do {
+            let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let trackPath = tracks[currentIndex!]
+            let trackURL = documentsDirectory.appendingPathComponent(trackPath)
+            
             audioPlayer = try AVAudioPlayer(contentsOf: trackURL)
             audioPlayer?.delegate = self
             audioPlayer?.play()

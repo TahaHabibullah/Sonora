@@ -9,8 +9,8 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        TabView {
-            Group {
+        ZStack {
+            TabView {
                 PlaylistsView()
                     .tabItem {
                         Image(systemName: "music.note")
@@ -23,10 +23,11 @@ struct ContentView: View {
                     }
             }
             .accentColor(.blue)
-            .toolbar {
-                ToolbarItem(placement: .bottomBar) {
-                    MiniPlayer()
-                }
+            
+            VStack(spacing: 0) {
+                Spacer()
+                MiniPlayer()
+                    .padding(.bottom, 49)
             }
         }
     }
