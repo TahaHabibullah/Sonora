@@ -13,36 +13,71 @@ struct LibraryView: View {
     @State private var isAddMenuPresented = false
     @State private var albums: [Album] = []
     
+    private let columns = [
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16)
+    ]
+    
     var body: some View {
         VStack() {
-            NavigationView {
-                VStack(spacing: 0) {
-                    List(albums) { album in
-                        NavigationLink(destination: AlbumView(album: album)) {
-                            HStack {
-                                if let artworkData = album.artwork,
-                                   let artwork = UIImage(data: artworkData) {
-                                    Image(uiImage: artwork)
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 50, height: 50)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                } else {
-                                    Image(systemName: "photo")
-                                        .frame(width: 50, height: 50)
-                                        .background(Color.gray)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                }
-                                VStack(alignment: .leading) {
-                                    Text(album.name)
-                                        .font(.headline)
-                                    Text("\(album.tracks.count) tracks")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
+            NavigationStack {
+                ScrollView {
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        ForEach(albums) { album in
+                            NavigationLink(destination: AlbumView(album: album)) {
+                                VStack(spacing: 0) {
+                                    if let artwork = album.artwork {
+                                        Image(uiImage: UIImage(data: artwork)!)
+                                            .resizable()
+                                            .scaledToFit()
+                                            .shadow(color: Color.gray.opacity(0.5), radius: 10)
+                                    } else {
+                                        Image(systemName: "music.note.list")
+                                            .font(.title)
+                                            .frame(width: 178, height: 178)
+                                            .background(Color.black)
+                                            .foregroundColor(.gray)
+                                            .border(.gray, width: 1)
+                                            .shadow(color: Color.gray.opacity(0.5), radius: 10)
+                                    }
+                                    VStack(spacing: 0) {
+                                        if !album.name.isEmpty {
+                                            Text(album.name)
+                                                .foregroundColor(.white)
+                                                .font(.subheadline)
+                                                .bold()
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                        }
+                                        else {
+                                            Text("Untitled Album")
+                                                .foregroundColor(.white)
+                                                .font(.subheadline)
+                                                .bold()
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                        }
+                                        if !album.artists.isEmpty {
+                                            Text(album.artists)
+                                                .foregroundColor(.gray)
+                                                .font(.subheadline)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                        }
+                                        else {
+                                            Text("Unknown Artist")
+                                                .foregroundColor(.gray)
+                                                .font(.subheadline)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                        }
+                                    }
+                                    .padding(.top, 4)
                                 }
                             }
                         }
                     }
+                    .padding()
                 }
                 .onAppear {
                     albums = AlbumManager.shared.fetchAlbums()

@@ -30,7 +30,7 @@ struct MiniPlayer: View {
                 Image(systemName: "music.note.list")
                     .font(.subheadline)
                     .frame(width: 50, height: 50)
-                    .background(Color.gray)
+                    .background(Color.gray.opacity(0.5))
                 
                 Text("Not Playing")
                     .padding(.leading, 10)

@@ -68,6 +68,9 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             let trackPath = tracks[currentIndex!]
             let trackURL = documentsDirectory.appendingPathComponent(trackPath)
             
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+            try AVAudioSession.sharedInstance().setActive(true)
+
             audioPlayer = try AVAudioPlayer(contentsOf: trackURL)
             audioPlayer?.delegate = self
             audioPlayer?.play()

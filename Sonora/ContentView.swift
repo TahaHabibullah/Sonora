@@ -8,6 +8,24 @@
 import SwiftUI
 
 struct ContentView: View {
+    
+    init() {
+        let appearance = UITabBarAppearance()
+        appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
+        appearance.stackedLayoutAppearance.normal.iconColor = UIColor.gray
+        appearance.stackedLayoutAppearance.normal.titleTextAttributes = [
+            .foregroundColor: UIColor.gray
+        ]
+        
+        appearance.stackedLayoutAppearance.selected.iconColor = UIColor.systemBlue
+        appearance.stackedLayoutAppearance.selected.titleTextAttributes = [
+            .foregroundColor: UIColor.systemBlue
+        ]
+        
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+    }
+    
     var body: some View {
         ZStack {
             TabView {
@@ -26,8 +44,12 @@ struct ContentView: View {
             
             VStack(spacing: 0) {
                 Spacer()
-                MiniPlayer()
-                    .padding(.bottom, 49)
+                VStack(spacing: 0) {
+                    MiniPlayer()
+                    Divider()
+                        .background(.gray)
+                }
+                .padding(.bottom, 49)
             }
         }
     }

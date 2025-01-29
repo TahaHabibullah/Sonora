@@ -13,7 +13,7 @@ struct AlbumView: View {
     @State private var isFilePickerPresented = false
     @State private var isImagePickerPresented = false
     @State private var showDeleteConfirmation = false
-    @State private var isEditing = false
+    @State private var editMode: EditMode = .inactive
     @State private var isEditingName = false
     @State private var isEditingArtists = false
     @State private var editingTrackIndex: Int? = nil
@@ -37,10 +37,12 @@ struct AlbumView: View {
                         .shadow(color: .gray, radius: 10)
                 } else {
                     Image(systemName: "music.note.list")
-                        .resizable()
-                        .scaledToFit()
+                        .font(.title)
                         .frame(width: 200, height: 200)
-                        .background(Color.gray.opacity(0.3))
+                        .background(Color.black)
+                        .foregroundColor(.gray)
+                        .border(.gray, width: 1)
+                        .shadow(color: .gray, radius: 10)
                 }
                 
                 if isEditingName {
@@ -57,13 +59,24 @@ struct AlbumView: View {
                         }
                 }
                 else {
-                    Text(album.name)
-                        .font(.largeTitle)
-                        .bold()
-                        .foregroundColor(.white)
-                        .padding(.top, 20)
-                        .frame(maxWidth: .infinity)
-                        .multilineTextAlignment(.center)
+                    if !album.name.isEmpty {
+                        Text(album.name)
+                            .font(.largeTitle)
+                            .bold()
+                            .foregroundColor(.white)
+                            .padding(.top, 20)
+                            .frame(maxWidth: .infinity)
+                            .multilineTextAlignment(.center)
+                    }
+                    else {
+                        Text("Untitled Album")
+                            .font(.largeTitle)
+                            .bold()
+                            .foregroundColor(.white)
+                            .padding(.top, 20)
+                            .frame(maxWidth: .infinity)
+                            .multilineTextAlignment(.center)
+                    }
                 }
                 if isEditingArtists {
                     TextField(album.artists, text: $album.artists)
@@ -78,12 +91,22 @@ struct AlbumView: View {
                         }
                 }
                 else {
-                    Text(album.artists)
-                        .font(.headline)
-                        .foregroundColor(.gray)
-                        .padding(.bottom, 10)
-                        .frame(maxWidth: .infinity)
-                        .multilineTextAlignment(.center)
+                    if !album.artists.isEmpty {
+                        Text(album.artists)
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                            .padding(.bottom, 10)
+                            .frame(maxWidth: .infinity)
+                            .multilineTextAlignment(.center)
+                    }
+                    else {
+                        Text("Unkown Artist")
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                            .padding(.bottom, 10)
+                            .frame(maxWidth: .infinity)
+                            .multilineTextAlignment(.center)
+                    }
                 }
 
                 List {
@@ -92,11 +115,9 @@ struct AlbumView: View {
                             playQueue.startQueue(from: element, in: album)
                         }) {
                             HStack {
-                                Text("\(index+1)")
-                                    .foregroundColor(.gray)
-                                    .frame(width: 20)
                                 if editingTrackIndex == index {
                                     TextField(album.titles[index], text: $album.titles[index])
+                                        .font(.subheadline)
                                         .focused($trackFieldFocused)
                                         .onAppear {
                                             trackFieldFocused = true
@@ -104,9 +125,13 @@ struct AlbumView: View {
                                 }
                                 else {
                                     Text(album.titles[index])
+                                        .font(.subheadline)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
                                 }
                                 Spacer()
                                 Text(getTrackDuration(from: element))
+                                    .font(.subheadline)
                                     .foregroundColor(.gray)
                             
                                 if editingTrackIndex == index {
@@ -131,28 +156,33 @@ struct AlbumView: View {
                                             Label("Rename Track", systemImage: "pencil")
                                         }
                                     } label: {
-                                        Image(systemName: "ellipsis")
-                                        .foregroundColor(.gray)
+                                        HStack {
+                                            Image(systemName: "ellipsis")
+                                                .foregroundColor(.gray)
+                                        }
+                                        .padding(.leading, 10)
+                                        .frame(width: 25, height: 25)
+                                        .contentShape(Rectangle())
                                     }
-                                    .padding()
                                 }
                             }
+                            .frame(height: 40)
                         }
                     }
-                    .onDelete(perform: isEditing ? deleteFile : nil)
-                    .onMove(perform: isEditing ? moveFile : nil)
+                    .onDelete(perform: editMode.isEditing ? deleteFile : nil)
+                    .onMove(perform: editMode.isEditing ? moveFile : nil)
                 }
+                .id(editMode.isEditing)
                 .scrollDisabled(true)
-                .frame(height: CGFloat(album.tracks.count * 60))
-                .environment(\.editMode, .constant(isEditing ? EditMode.active : EditMode.inactive))
+                .frame(height: CGFloat(album.tracks.count * 80))
+                .environment(\.editMode, $editMode)
                 .listStyle(PlainListStyle())
             }
-            .padding()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if isEditing || isEditingName || isEditingArtists {
+                    if editMode.isEditing || isEditingName || isEditingArtists {
                         Button(action: {
-                            if isEditing {
+                            if editMode.isEditing {
                                 confirmChanges()
                             }
                             else if isEditingName {
@@ -189,7 +219,7 @@ struct AlbumView: View {
                                 Label("Edit Artists", systemImage: "pencil")
                             }
                             Button(action: {
-                                isEditing = true
+                                editMode = .active
                             }) {
                                 Label("Edit Tracks", systemImage: "pencil")
                             }
@@ -265,7 +295,7 @@ struct AlbumView: View {
     private func confirmChanges() {
         deleteFilesFromDocuments(filePaths: markedForDeletion)
         AlbumManager.shared.replaceAlbum(album)
-        isEditing = false
+        editMode = .inactive
     }
     
     private func confirmNameChanges() {
