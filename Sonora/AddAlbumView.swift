@@ -250,7 +250,7 @@ struct AddAlbumView: View {
             if fileManager.fileExists(atPath: destinationURL.path) {
                 continue
             }
-           
+            
             do {
                 try fileManager.copyItem(at: sourceURL, to: destinationURL)
                 filePaths.append(filePath)

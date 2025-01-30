@@ -14,11 +14,18 @@ struct MiniPlayer: View {
     var body: some View {
         HStack {
             if let currentIndex = playQueue.currentIndex {
-                Image(uiImage: UIImage(data: playQueue.artworks[currentIndex]!)!)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 50, height: 50)
-                    .background(Color.gray)
+                if let artwork = playQueue.artworks[currentIndex] {
+                    Image(uiImage: UIImage(data: artwork)!)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 50, height: 50)
+                }
+                else {
+                    Image(systemName: "music.note.list")
+                        .font(.subheadline)
+                        .frame(width: 50, height: 50)
+                        .background(Color.gray.opacity(0.5))
+                }
                 
                 Text(playQueue.titles[currentIndex])
                     .padding(.leading, 10)

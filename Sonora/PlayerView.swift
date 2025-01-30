@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 import AVFoundation
 import MediaPlayer
 
@@ -14,6 +15,7 @@ struct PlayerView: View {
     @Binding var isPresented: Bool
     @State private var sliderValue: Double = 0.0
     @State private var timer: Timer?
+    @State private var isEditing: Bool = false
     
     var body: some View {
         let screenHeight = UIScreen.main.bounds.height
@@ -87,6 +89,7 @@ struct PlayerView: View {
 
             VStack(spacing: 0) {
                 Slider(value: $sliderValue, in: 0...1, step: 0.01, onEditingChanged: { editing in
+                    isEditing = editing
                     if !editing {
                         playQueue.audioPlayer?.currentTime = sliderValue * playQueue.audioPlayer!.duration
                     }
@@ -185,9 +188,8 @@ struct PlayerView: View {
 
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-            if let playQueue = playQueue.audioPlayer {
-                sliderValue = playQueue.currentTime / playQueue.duration
-            }
+            guard let playQueue = playQueue.audioPlayer, !isEditing else { return }
+            sliderValue = playQueue.currentTime / playQueue.duration
         }
     }
     

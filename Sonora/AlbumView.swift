@@ -140,7 +140,7 @@ struct AlbumView: View {
                                         editingTrackIndex = nil
                                     }) {
                                         Image(systemName: "checkmark")
-                                            .padding()
+                                            .padding(.leading, 10)
                                             .foregroundColor(.blue)
                                     }
                                 }
@@ -201,7 +201,7 @@ struct AlbumView: View {
                             Button(action: {
                                 isFilePickerPresented = true
                             }) {
-                                Label("Add Files to Album", systemImage: "document.badge.plus")
+                                Label("Add Files to Album", systemImage: "music.note.list")
                             }
                             Button(action: {
                                 isImagePickerPresented = true
