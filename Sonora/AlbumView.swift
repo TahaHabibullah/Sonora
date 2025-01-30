@@ -362,9 +362,11 @@ struct AlbumView: View {
     private func handleFileSelection(result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
+            urls.map { $0.startAccessingSecurityScopedResource() }
             let filePaths = copyFilesToDocuments(sourceURLs: urls, name: album.name)
             album.tracks.append(contentsOf: filePaths)
-            album.titles.append(contentsOf: filePaths.map { URL(fileURLWithPath: $0).lastPathComponent })
+            album.titles.append(contentsOf: filePaths.map { URL(fileURLWithPath: $0)
+                .deletingPathExtension().lastPathComponent })
             AlbumManager.shared.replaceAlbum(album)
         case .failure(let error):
             print("File selection error: \(error.localizedDescription)")

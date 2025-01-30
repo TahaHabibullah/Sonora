@@ -21,6 +21,12 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var isPlaying: Bool = false
     @Published var audioPlayer: AVAudioPlayer?
     var playbackTimer: Timer?
+    
+    override init() {
+        super.init()
+        setupRemoteTransportControls()
+        observeAudioInterruptions()
+    }
 
     func startQueue(from track: String, in list: [String]) {
         currentIndex = list.firstIndex(of: track)
@@ -34,8 +40,6 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         currentIndex = album.tracks.firstIndex(of: track)
         if currentIndex != nil {
             do {
-                setupRemoteTransportControls()
-                observeAudioInterruptions()
                 try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
                 try AVAudioSession.sharedInstance().setActive(true)
             } catch {
@@ -87,6 +91,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             isPlaying = true
             
             guard let player = audioPlayer else { return }
+            
             var nowPlayingInfo: [String: Any] = [
                 MPMediaItemPropertyTitle: titles[currentIndex!],
                 MPMediaItemPropertyArtist: artists[currentIndex!],
@@ -121,6 +126,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     func stopPlayback() {
         audioPlayer?.stop()
         stopPlaybackUpdates()
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
         isPlaying = false
         audioPlayer = nil
         currentIndex = nil
@@ -164,7 +170,8 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
     
     func startPlaybackUpdates() {
-        playbackTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+        playbackTimer?.invalidate()
+        playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
             self.updateNowPlayingInfo()
         }
     }
