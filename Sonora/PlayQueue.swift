@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import UIKit
 import Foundation
 import AVFoundation
 import MediaPlayer
@@ -19,8 +18,13 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var artists: [String] = []
     @Published var artworks: [Data?] = []
     @Published var isPlaying: Bool = false
+    @Published var isShuffled: Bool = false
     @Published var audioPlayer: AVAudioPlayer?
     var playbackTimer: Timer?
+    private var originalTracks: [String] = []
+    private var originalTitles: [String] = []
+    private var originalArtists: [String] = []
+    private var originalArtworks: [Data?] = []
     
     override init() {
         super.init()
@@ -36,8 +40,8 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         }
     }
     
-    func startQueue(from track: String, in album: Album) {
-        currentIndex = album.tracks.firstIndex(of: track)
+    func startQueue(from track: Int, in album: Album) {
+        currentIndex = track
         if currentIndex != nil {
             do {
                 try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
@@ -50,9 +54,84 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             titles = album.titles
             artworks = Array(repeating: album.artwork, count: album.titles.count)
             artists = Array(repeating: album.artists, count: album.titles.count)
+            
+            originalTracks = album.tracks
+            originalTitles = album.titles
+            originalArtworks = Array(repeating: album.artwork, count: album.titles.count)
+            originalArtists = Array(repeating: album.artists, count: album.titles.count)
             playCurrentTrack()
             startPlaybackUpdates()
         }
+    }
+    
+    func startShuffledQueue(from album: Album) {
+        currentIndex = 0
+        if currentIndex != nil {
+            do {
+                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+                try AVAudioSession.sharedInstance().setActive(true)
+            } catch {
+                print("Error configuring audio session: \(error.localizedDescription)")
+            }
+        }
+        name = album.name
+        let shuffledIndices = album.tracks.indices.shuffled()
+        originalTracks = album.tracks
+        originalTitles = album.titles
+        originalArtworks = Array(repeating: album.artwork, count: album.titles.count)
+        originalArtists = Array(repeating: album.artists, count: album.titles.count)
+        
+        tracks = shuffledIndices.map { album.tracks[$0] }
+        titles = shuffledIndices.map { album.titles[$0] }
+        artworks = Array(repeating: album.artwork, count: album.titles.count)
+        artists = Array(repeating: album.artists, count: album.titles.count)
+        isShuffled = true
+        playCurrentTrack()
+        startPlaybackUpdates()
+    }
+    
+    func shuffleTracks() {
+        var trackQueue = tracks
+        var titlesQueue = titles
+        var artistsQueue = artists
+        var artworksQueue = artworks
+        trackQueue.remove(at: currentIndex!)
+        titlesQueue.remove(at: currentIndex!)
+        artistsQueue.remove(at: currentIndex!)
+        artworksQueue.remove(at: currentIndex!)
+        
+        let shuffledIndices = trackQueue.indices.shuffled()
+        var shuffledQueueTracks = shuffledIndices.map { trackQueue[$0] }
+        var shuffledQueueTitles = shuffledIndices.map { titlesQueue[$0] }
+        var shuffledQueueArtists = shuffledIndices.map { artistsQueue[$0] }
+        var shuffledQueueArtworks = shuffledIndices.map { artworksQueue[$0] }
+        
+        let currentTrack = tracks[currentIndex!]
+        let currentTitle = titles[currentIndex!]
+        let currentArtist = artists[currentIndex!]
+        let currentArtwork = artworks[currentIndex!]
+        
+        shuffledQueueTitles.insert(currentTitle, at: 0)
+        shuffledQueueTracks.insert(currentTrack, at: 0)
+        shuffledQueueArtists.insert(currentArtist, at: 0)
+        shuffledQueueArtworks.insert(currentArtwork, at: 0)
+        
+        tracks = shuffledQueueTracks
+        titles = shuffledQueueTitles
+        artists = shuffledQueueArtists
+        artworks = shuffledQueueArtworks
+        currentIndex = 0
+        isShuffled = true
+    }
+    
+    func unshuffleTracks() {
+        let currentTrack = tracks[currentIndex!]
+        currentIndex = originalTracks.firstIndex(where: { $0 == currentTrack })!
+        tracks = originalTracks
+        titles = originalTitles
+        artists = originalArtists
+        artworks = originalArtworks
+        isShuffled = false
     }
 
     func playNextTrack() {
@@ -130,6 +209,16 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         isPlaying = false
         audioPlayer = nil
         currentIndex = nil
+        name = ""
+        tracks = []
+        artists = []
+        titles = []
+        artworks = []
+    }
+    
+    func skipToTrack(_ index: Int) {
+        currentIndex = index
+        playCurrentTrack()
     }
 
     func skipTrack() {

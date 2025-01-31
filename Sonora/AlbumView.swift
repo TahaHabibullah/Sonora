@@ -108,11 +108,57 @@ struct AlbumView: View {
                             .multilineTextAlignment(.center)
                     }
                 }
+                
+                if !album.tracks.isEmpty {
+                    HStack(spacing: 0) {
+                        Button(action: {
+                            playQueue.startQueue(from: 0, in: album)
+                        }) {
+                            HStack {
+                                Text("Play")
+                                    .font(.headline)
+                                    .foregroundColor(.blue)
+                                    .padding()
+                                Image(systemName: "play.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 20, height: 20)
+                                    .foregroundColor(.blue)
+                                    .padding()
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .background(Color.gray.opacity(0.2))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .padding()
+                        
+                        Button(action: {
+                            playQueue.startShuffledQueue(from: album)
+                        }) {
+                            HStack {
+                                Text("Shuffle")
+                                    .font(.headline)
+                                    .foregroundColor(.blue)
+                                    .padding()
+                                Image(systemName: "shuffle")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 20, height: 20)
+                                    .foregroundColor(.blue)
+                                    .padding()
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .background(Color.gray.opacity(0.2))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .padding()
+                    }
+                }
 
                 List {
                     ForEach(Array(album.tracks.enumerated()), id: \.element) { index, element in
                         Button(action: {
-                            playQueue.startQueue(from: element, in: album)
+                            playQueue.startQueue(from: index, in: album)
                         }) {
                             HStack {
                                 if editingTrackIndex == index {

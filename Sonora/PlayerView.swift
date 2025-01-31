@@ -6,13 +6,13 @@
 //
 
 import SwiftUI
-import UIKit
 import AVFoundation
 import MediaPlayer
 
 struct PlayerView: View {
     @EnvironmentObject var playQueue: PlayQueue
     @Binding var isPresented: Bool
+    @State var isQueuePresented: Bool = false
     @State private var sliderValue: Double = 0.0
     @State private var timer: Timer?
     @State private var isEditing: Bool = false
@@ -20,170 +20,218 @@ struct PlayerView: View {
     var body: some View {
         let screenHeight = UIScreen.main.bounds.height
         let imageSize: CGFloat = screenHeight > 812 ? 300 : screenHeight > 736 ? 250 : 200
-        VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                RoundedRectangle(cornerRadius: 5)
-                    .fill(Color.gray)
-                    .frame(width: 40, height: 5)
-                    .padding(.top, 10)
-                    .padding(.bottom, 5)
-                Spacer()
+        
+        ZStack {
+            if isQueuePresented {
+                QueueView(isPresented: $isQueuePresented)
+                    .transition(.opacity)
+                    .zIndex(1)
             }
             
-            if let currentIndex = playQueue.currentIndex {
-                Text(playQueue.name)
-                    .font(.headline)
-                    .bold()
-                    .padding()
-                
-                if let artwork = playQueue.artworks[currentIndex] {
-                    Image(uiImage: UIImage(data: artwork)!)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: imageSize, height: imageSize)
-                        .shadow(color: .black, radius: 10)
-                }
-                else {
-                    Image(systemName: "music.note.list")
-                        .font(.title)
-                        .frame(width: imageSize, height: imageSize)
-                        .background(Color.black)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-                
-                VStack {
-                    Text(playQueue.titles[currentIndex])
-                        .font(.title2)
-                        .bold()
-                    
-                    Text(playQueue.artists[currentIndex])
-                        .font(.headline)
-                        .foregroundColor(.gray)
-                }
-                .padding()
-            }
-            else {
-                Text("-")
-                    .font(.headline)
-                    .bold()
-                    .padding()
-                
-                Image(systemName: "music.note.list")
-                    .font(.title)
-                    .frame(width: imageSize, height: imageSize)
-                    .background(Color.black)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                
-                VStack {
-                    Text("Not Playing")
-                        .font(.title2)
-                        .bold()
-                    
-                    Text("-")
-                        .font(.headline)
-                        .foregroundColor(.gray)
-                }
-                .padding()
-            }
-
             VStack(spacing: 0) {
-                Slider(value: $sliderValue, in: 0...1, step: 0.01, onEditingChanged: { editing in
-                    isEditing = editing
-                    if !editing {
-                        playQueue.audioPlayer?.currentTime = sliderValue * playQueue.audioPlayer!.duration
-                    }
-                })
-                .padding()
-                .frame(height: 30)
-                .accentColor(.white)
-                
                 HStack {
-                    if let duration = playQueue.audioPlayer?.duration {
-                        Text(formatTime(sliderValue * duration))
-                            .font(.subheadline)
-                        Spacer()
-                        Text("-" + formatTime(duration - sliderValue * duration))
-                            .font(.subheadline)
+                    Spacer()
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(Color.gray)
+                        .frame(width: 40, height: 5)
+                        .padding(.top, 10)
+                        .padding(.bottom, 5)
+                    Spacer()
+                }
+                
+                VStack(spacing: 0) {
+                    if let currentIndex = playQueue.currentIndex {
+                        if let artwork = playQueue.artworks[currentIndex] {
+                            Text(playQueue.name)
+                                .font(.headline)
+                                .bold()
+                                .padding()
+                            
+                            Image(uiImage: UIImage(data: artwork)!)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: imageSize, height: imageSize)
+                                .shadow(color: .black, radius: 10)
+                        }
+                        else {
+                            Image(systemName: "music.note.list")
+                                .font(.title)
+                                .frame(width: imageSize, height: imageSize)
+                                .background(Color.black)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        
+                        VStack {
+                            Text(playQueue.titles[currentIndex])
+                                .font(.title2)
+                                .bold()
+                            
+                            Text(playQueue.artists[currentIndex])
+                                .font(.headline)
+                                .foregroundColor(.gray)
+                        }
+                        .padding()
                     }
                     else {
-                        Text("--:--")
-                            .font(.subheadline)
-                        Spacer()
-                        Text("--:--")
-                            .font(.subheadline)
-                    }
-                }
-            }
-            .padding(.top, 30)
-
-            HStack {
-                Button(action: playQueue.prevTrack) {
-                    Image(systemName: "backward.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 35, height: 35)
-                        .foregroundColor(.white)
+                        Text("-")
+                            .font(.headline)
+                            .bold()
+                            .padding()
+                        
+                        Image(systemName: "music.note.list")
+                            .font(.title)
+                            .frame(width: imageSize, height: imageSize)
+                            .background(Color.black)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        
+                        VStack {
+                            Text("Not Playing")
+                                .font(.title2)
+                                .bold()
+                            
+                            Text("-")
+                                .font(.headline)
+                                .foregroundColor(.gray)
+                        }
                         .padding()
-                }
-                if playQueue.isPlaying {
-                    Button(action: playQueue.pausePlayback) {
-                        Image(systemName: "pause.fill")
+                    }
+                    
+                    VStack(spacing: 0) {
+                        Slider(value: $sliderValue, in: 0...1, step: 0.01, onEditingChanged: { editing in
+                            isEditing = editing
+                            if !editing {
+                                playQueue.audioPlayer?.currentTime = sliderValue * playQueue.audioPlayer!.duration
+                            }
+                        })
+                        .padding()
+                        .frame(height: 30)
+                        .accentColor(.white)
+                        
+                        HStack {
+                            if let duration = playQueue.audioPlayer?.duration {
+                                Text(formatTime(sliderValue * duration))
+                                    .font(.subheadline)
+                                Spacer()
+                                Text("-" + formatTime(duration - sliderValue * duration))
+                                    .font(.subheadline)
+                            }
+                            else {
+                                Text("--:--")
+                                    .font(.subheadline)
+                                Spacer()
+                                Text("--:--")
+                                    .font(.subheadline)
+                            }
+                        }
+                    }
+                    .padding(.top, 30)
+                    
+                    HStack {
+                        if playQueue.isShuffled {
+                            Button(action: {
+                                playQueue.unshuffleTracks()
+                            }) {
+                                Image(systemName: "shuffle")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 20, height: 20)
+                                    .foregroundColor(.blue)
+                                    .padding()
+                            }
+                        }
+                        else {
+                            Button(action: {
+                                playQueue.shuffleTracks()
+                            }) {
+                                Image(systemName: "shuffle")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 20, height: 20)
+                                    .foregroundColor(.gray)
+                                    .padding()
+                            }
+                        }
+                        Button(action: playQueue.prevTrack) {
+                            Image(systemName: "backward.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 35, height: 35)
+                                .foregroundColor(.white)
+                                .padding()
+                        }
+                        if playQueue.isPlaying {
+                            Button(action: playQueue.pausePlayback) {
+                                Image(systemName: "pause.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 35, height: 35)
+                                    .foregroundColor(.white)
+                                    .padding()
+                            }
+                        }
+                        else {
+                            Button(action: playQueue.resumePlayback) {
+                                Image(systemName: "play.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 35, height: 35)
+                                    .foregroundColor(.white)
+                                    .padding()
+                            }
+                        }
+                        Button(action: playQueue.skipTrack) {
+                            Image(systemName: "forward.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 35, height: 35)
+                                .foregroundColor(.white)
+                                .padding()
+                        }
+                        
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                isQueuePresented = true
+                            }
+                        }) {
+                            Image(systemName: "list.triangle")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 20, height: 20)
+                                .foregroundColor(.gray)
+                                .padding()
+                        }
+                    }
+                    .padding(.top, 30)
+                    
+                    HStack(alignment: .top) {
+                        Image(systemName: "speaker.fill")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 35, height: 35)
-                            .foregroundColor(.white)
-                            .padding()
-                    }
-                }
-                else {
-                    Button(action: playQueue.resumePlayback) {
-                        Image(systemName: "play.fill")
+                            .frame(width: 20, height: 20)
+                            .padding(.top, 5)
+                        VolumeSlider()
+                            .accentColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.top, 6)
+                        Image(systemName: "speaker.wave.3.fill")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 35, height: 35)
-                            .foregroundColor(.white)
-                            .padding()
+                            .frame(width: 30, height: 30)
+                    }
+                    .padding(.top, 20)
+                }
+                .onAppear {
+                    UISlider.appearance().setThumbImage(UIImage(systemName: "circle.fill"), for: .normal)
+                    if playQueue.currentIndex != nil {
+                        startTimer()
                     }
                 }
-                Button(action: playQueue.skipTrack) {
-                    Image(systemName: "forward.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 35, height: 35)
-                        .foregroundColor(.white)
-                        .padding()
+                .onDisappear {
+                    timer?.invalidate()
                 }
-            }
-            .padding(.top, 30)
-            
-            HStack(alignment: .top) {
-                Image(systemName: "speaker.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 20, height: 20)
-                    .padding(.top, 5)
-                VolumeSlider()
-                    .accentColor(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.top, 6)
-                Image(systemName: "speaker.wave.3.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 30, height: 30)
-            }
-            .padding(.top, 20)
-        }
-        .onAppear {
-            UISlider.appearance().setThumbImage(UIImage(systemName: "circle.fill"), for: .normal)
-            if playQueue.currentIndex != nil {
-                startTimer()
+                .padding(.horizontal, 15)
             }
         }
-        .onDisappear {
-            timer?.invalidate()
-        }
-        .padding()
     }
 
     private func startTimer() {
