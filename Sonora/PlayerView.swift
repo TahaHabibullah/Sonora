@@ -150,6 +150,7 @@ struct PlayerView: View {
                                     .foregroundColor(.gray)
                                     .padding()
                             }
+                            .disabled(playQueue.currentIndex == nil)
                         }
                         Button(action: playQueue.prevTrack) {
                             Image(systemName: "backward.fill")
@@ -200,6 +201,7 @@ struct PlayerView: View {
                                 .foregroundColor(.gray)
                                 .padding()
                         }
+                        .disabled(playQueue.currentIndex == nil)
                     }
                     .padding(.top, 30)
                     

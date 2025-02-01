@@ -89,13 +89,13 @@ struct LibraryView: View {
                             Button(action: {
                                 print("Add loose tracks tapped")
                             }) {
-                                Label("Add files to library", systemImage: "music.note.list")
+                                Label("Add Files To Library", systemImage: "music.note.list")
                             }
 
                             Button(action: {
                                 isAddAlbumPresented = true
                             }) {
-                                Label("Create new album", systemImage: "plus.rectangle.on.rectangle")
+                                Label("Create New Album", systemImage: "plus.rectangle.on.rectangle")
                             }
                         } label: {
                             HStack {

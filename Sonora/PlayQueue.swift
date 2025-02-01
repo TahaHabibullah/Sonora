@@ -59,6 +59,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             originalTitles = album.titles
             originalArtworks = Array(repeating: album.artwork, count: album.titles.count)
             originalArtists = Array(repeating: album.artists, count: album.titles.count)
+            isShuffled = false
             playCurrentTrack()
             startPlaybackUpdates()
         }
@@ -91,6 +92,10 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
     
     func shuffleTracks() {
+        if currentIndex == nil {
+            return
+        }
+        
         var trackQueue = tracks
         var titlesQueue = titles
         var artistsQueue = artists
@@ -125,6 +130,10 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
     
     func unshuffleTracks() {
+        if currentIndex == nil {
+            return
+        }
+        
         let currentTrack = tracks[currentIndex!]
         currentIndex = originalTracks.firstIndex(where: { $0 == currentTrack })!
         tracks = originalTracks

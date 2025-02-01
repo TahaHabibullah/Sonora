@@ -23,56 +23,82 @@ struct AddAlbumView: View {
         NavigationView {
             GeometryReader { _ in
                 VStack {
-                    ZStack(alignment: .topLeading) {
-                        Button(action: {
-                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                            isImagePickerPresented = true
-                        }) {
+                    Button(action: {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                        isImagePickerPresented = true
+                    }) {
+                        ZStack {
                             if let albumArtwork = albumArtwork {
                                 Image(uiImage: albumArtwork)
                                     .resizable()
                                     .scaledToFit()
                                     .frame(width: 150, height: 150)
-                            } else {
+                            }
+                            else {
+                                Image(systemName: "music.note.list")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 75, height: 75)
+                                    .foregroundColor(Color.gray.opacity(0.5))
+                            }
+                            
+                            VStack {
                                 VStack {
-                                    Image(systemName: "photo")
-                                        .font(.largeTitle)
-                                    Text("Add Album Artwork")
+                                    Image(systemName: "camera.fill")
                                         .font(.subheadline)
-                                        .padding(.top, 5)
+                                        .foregroundColor(Color.black.opacity(0.5))
                                 }
-                                .frame(width: 150, height: 150)
-                                .background(Color.gray.opacity(0.2))
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .frame(width: 40, height: 40)
+                                .background(.gray)
+                                .clipShape(Circle())
+                                .shadow(color: Color.black.opacity(0.5), radius: 5)
                             }
+                            .frame(width: 150, height: 150)
+                            .background(Color.gray.opacity(0.2))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
                         }
-                        
-                        if albumArtwork != nil {
-                            Button(action: {
-                                albumArtwork = nil
-                            }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .padding(8)
-                                    .foregroundColor(.gray)
-                                    .font(.headline)
-                            }
-                            .padding(8)
-                        }
+                        .padding(.top, 10)
                     }
                     
-                    TextField("Album Name", text: $albumName)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(8)
-                        .padding([.leading, .trailing])
-                    
-                    TextField("Artist(s)", text: $artists)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(8)
-                        .padding([.leading, .trailing])
+                    VStack(spacing: 20) {
+                        VStack(spacing: 0) {
+                            HStack {
+                                Text("Album Name")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                Spacer()
+                            }
+                            TextField("", text: $albumName)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 5)
+                                .overlay(
+                                    Rectangle()
+                                        .frame(height: 1)
+                                        .foregroundColor(.gray),
+                                    alignment: .bottom
+                                )
+                        }
+                        
+                        VStack(spacing: 0) {
+                            HStack {
+                                Text("Artist(s)")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                Spacer()
+                            }
+                            TextField("", text: $artists)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 5)
+                                .overlay(
+                                    Rectangle()
+                                        .frame(height: 1)
+                                        .foregroundColor(.gray),
+                                    alignment: .bottom
+                                )
+                        }
+                    }
+                    .padding([.leading, .trailing])
+                    .padding(.top, 10)
 
                     VStack(spacing: 0) {
                         if !selectedFiles.isEmpty {

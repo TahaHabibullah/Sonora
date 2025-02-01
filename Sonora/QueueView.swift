@@ -110,6 +110,7 @@ struct QueueView: View {
                                 .frame(width: 20, height: 20)
                                 .foregroundColor(.blue)
                         }
+                        .disabled(playQueue.currentIndex == nil)
                     }
                     else {
                         Button(action: {
@@ -121,6 +122,7 @@ struct QueueView: View {
                                 .frame(width: 20, height: 20)
                                 .foregroundColor(.gray)
                         }
+                        .disabled(playQueue.currentIndex == nil)
                     }
                 }
                 .padding(.horizontal, 15)
