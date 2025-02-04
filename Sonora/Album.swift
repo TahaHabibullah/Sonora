@@ -11,24 +11,20 @@ import SwiftUI
 struct Album: Codable, Identifiable {
     let id: UUID
     var name: String
-    var artists: String
+    var artist: String
     var titles: [String]
-    var artwork: Data?
+    var artwork: String?
     var tracks: [String]
     var directory: String
     
-    init(name: String, artists: String, artwork: UIImage?, tracks: [String], directory: String) {
+    init(name: String, artist: String, artwork: String?, tracks: [String], directory: String) {
         self.id = UUID()
         self.name = name
-        self.artists = artists
+        self.artist = artist
         self.titles = tracks.map { URL(fileURLWithPath: $0).deletingPathExtension().lastPathComponent }
-        self.artwork = artwork?.jpegData(compressionQuality: 1)
+        self.artwork = artwork
         self.tracks = tracks
         self.directory = directory
-    }
-    
-    mutating func replaceArtwork(_ artwork: UIImage) {
-        self.artwork = artwork.jpegData(compressionQuality: 1)
     }
 }
 

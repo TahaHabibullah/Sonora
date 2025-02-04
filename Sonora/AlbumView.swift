@@ -28,8 +28,7 @@ struct AlbumView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                if let artworkData = album.artwork,
-                    let artwork = UIImage(data: artworkData) {
+                if let artwork = Utils.shared.loadImageFromDocuments(filePath: album.artwork) {
                     Image(uiImage: artwork)
                         .resizable()
                         .scaledToFit()
@@ -79,7 +78,7 @@ struct AlbumView: View {
                     }
                 }
                 if isEditingArtists {
-                    TextField(album.artists, text: $album.artists)
+                    TextField(album.artist, text: $album.artist)
                         .font(.headline)
                         .foregroundColor(.gray)
                         .padding(.bottom, 10)
@@ -91,8 +90,8 @@ struct AlbumView: View {
                         }
                 }
                 else {
-                    if !album.artists.isEmpty {
-                        Text(album.artists)
+                    if !album.artist.isEmpty {
+                        Text(album.artist)
                             .font(.headline)
                             .foregroundColor(.gray)
                             .padding(.bottom, 10)
@@ -281,8 +280,9 @@ struct AlbumView: View {
                             }
                             .foregroundColor(.blue)
                         }
-                        .padding()
-                        .confirmationDialog("Are you sure you want to delete this album?", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+                        .confirmationDialog("Are you sure you want to delete this album?",
+                                            isPresented: $showDeleteConfirmation,
+                                            titleVisibility: .visible) {
                             Button("Delete", role: .destructive) {
                                 AlbumManager.shared.deleteAlbum(album)
                                 presentationMode.wrappedValue.dismiss()
@@ -298,10 +298,8 @@ struct AlbumView: View {
             .sheet(isPresented: $isImagePickerPresented) {
                 ImagePicker(selectedImage: $newArtwork)
                     .onDisappear() {
-                        if newArtwork != nil {
-                            album.replaceArtwork(newArtwork!)
-                            AlbumManager.shared.replaceAlbum(album)
-                        }
+                        let resizedArtwork = Utils.shared.resizeImage(image: newArtwork)
+                        Utils.shared.copyImageToDocuments(artwork: resizedArtwork, directory: album.directory)
                     }
             }
             .fileImporter(
@@ -327,7 +325,8 @@ struct AlbumView: View {
             let seconds = Int(durationInSeconds.truncatingRemainder(dividingBy: 60))
             let stringSeconds = seconds < 10 ? "0\(seconds)" : "\(seconds)"
             return "\(minutes):\(stringSeconds)"
-        } else {
+        }
+        else {
             return ""
         }
     }
@@ -375,7 +374,7 @@ struct AlbumView: View {
                     try fileManager.removeItem(at: trackPath)
                 }
             } catch {
-                print("Failed to delete file: \(path)")
+                print("Failed to delete file at path: \(path)")
             }
         }
         markedForDeletion.removeAll()

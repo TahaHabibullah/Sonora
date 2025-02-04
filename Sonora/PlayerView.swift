@@ -41,17 +41,16 @@ struct PlayerView: View {
                 
                 VStack(spacing: 0) {
                     if let currentIndex = playQueue.currentIndex {
-                        if let artwork = playQueue.artworks[currentIndex] {
-                            Text(playQueue.name)
-                                .font(.headline)
-                                .bold()
-                                .padding()
-                            
-                            Image(uiImage: UIImage(data: artwork)!)
+                        Text(playQueue.name)
+                            .font(.headline)
+                            .bold()
+                            .padding()
+                        if let artwork = Utils.shared.loadImageFromDocuments(filePath: playQueue.artworks[currentIndex]) {
+                            Image(uiImage: artwork)
                                 .resizable()
                                 .scaledToFit()
                                 .frame(width: imageSize, height: imageSize)
-                                .shadow(color: .black, radius: 10)
+                                .shadow(color: .black, radius: 5)
                         }
                         else {
                             Image(systemName: "music.note.list")
@@ -95,6 +94,8 @@ struct PlayerView: View {
                         }
                         .padding()
                     }
+                    
+                    Spacer()
                     
                     VStack(spacing: 0) {
                         Slider(value: $sliderValue, in: 0...1, step: 0.01, onEditingChanged: { editing in
@@ -190,7 +191,7 @@ struct PlayerView: View {
                         }
                         
                         Button(action: {
-                            withAnimation(.easeInOut(duration: 0.5)) {
+                            withAnimation(.easeInOut(duration: 0.25)) {
                                 isQueuePresented = true
                             }
                         }) {

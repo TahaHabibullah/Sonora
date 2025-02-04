@@ -12,7 +12,7 @@ struct AddAlbumView: View {
     @Binding var isPresented: Bool
     @State private var editMode: EditMode = .inactive
     @State private var albumName: String = ""
-    @State private var artists: String = ""
+    @State private var artist: String = ""
     @State private var albumArtwork: UIImage? = nil
     @State private var selectedFiles: [URL] = []
     @State private var isFilePickerPresented = false
@@ -86,7 +86,7 @@ struct AddAlbumView: View {
                                     .foregroundColor(.gray)
                                 Spacer()
                             }
-                            TextField("", text: $artists)
+                            TextField("", text: $artist)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 5)
                                 .overlay(
@@ -181,8 +181,10 @@ struct AddAlbumView: View {
                     trailing: Button("Save") {
                         let tuple = copyFilesToDocuments(sourceURLs: selectedFiles, name: albumName)
                         let filePaths = tuple.first
-                        let directory  = tuple.last
-                        let newAlbum = Album(name: albumName, artists: artists, artwork: albumArtwork, tracks: filePaths, directory: directory)
+                        let directory = tuple.last
+                        let resizedArtwork = Utils.shared.resizeImage(image: albumArtwork)
+                        let artworkPath = Utils.shared.copyImageToDocuments(artwork: resizedArtwork, directory: directory)
+                        let newAlbum = Album(name: albumName, artist: artist, artwork: artworkPath, tracks: filePaths, directory: directory)
                         AlbumManager.shared.saveAlbum(newAlbum)
                         isPresented = false
                     }
@@ -254,11 +256,15 @@ struct AddAlbumView: View {
         var count = 1
         while directoryExists(at: albumDirectory) {
             if count > 1 {
-                let newDirectory = albumDirectory.path.replacingOccurrences(of: "\(sanitizedAlbumName)__\(count-1)", with: "\(sanitizedAlbumName)__\(count)")
+                let newDirectory = albumDirectory.path.replacingOccurrences(
+                    of: "\(sanitizedAlbumName)__\(count-1)",
+                    with: "\(sanitizedAlbumName)__\(count)")
                 albumDirectory = URL(fileURLWithPath: newDirectory)
             }
             else {
-                let newDirectory = albumDirectory.path.replacingOccurrences(of: "\(sanitizedAlbumName)", with: "\(sanitizedAlbumName)__1")
+                let newDirectory = albumDirectory.path.replacingOccurrences(
+                    of: "\(sanitizedAlbumName)",
+                    with: "\(sanitizedAlbumName)__1")
                 albumDirectory = URL(fileURLWithPath: newDirectory)
             }
             count+=1
@@ -272,7 +278,10 @@ struct AddAlbumView: View {
         
         for sourceURL in sourceURLs {
             let destinationURL = albumDirectory.appendingPathComponent(sourceURL.lastPathComponent)
-            let filePath = count > 1 ? sanitizedAlbumName + "__\(count-1)/" + sourceURL.lastPathComponent : sanitizedAlbumName + "/" + sourceURL.lastPathComponent
+            let filePath = count > 1 ?
+                sanitizedAlbumName + "__\(count-1)/" + sourceURL.lastPathComponent :
+                sanitizedAlbumName + "/" + sourceURL.lastPathComponent
+            
             if fileManager.fileExists(atPath: destinationURL.path) {
                 continue
             }
@@ -286,5 +295,5 @@ struct AddAlbumView: View {
         }
         let result = (first: filePaths, last: albumDirectory.lastPathComponent)
         return result
-   }
+    }
 }

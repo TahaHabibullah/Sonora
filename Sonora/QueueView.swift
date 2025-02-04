@@ -17,7 +17,7 @@ struct QueueView: View {
         VStack(spacing: 0) {
             HStack {
                 Button(action: {
-                    withAnimation(.easeInOut(duration: 0.5)) {
+                    withAnimation(.easeInOut(duration: 0.25)) {
                         isPresented = false
                     }
                 }) {
@@ -61,8 +61,9 @@ struct QueueView: View {
                 .padding(.leading, 15)
                 
                 HStack {
-                    if let artwork = playQueue.artworks[currentIndex] {
-                        Image(uiImage: UIImage(data: artwork)!)
+                    if let artwork = Utils.shared.loadImageFromDocuments(
+                        filePath: playQueue.artworks[currentIndex]) {
+                        Image(uiImage: artwork)
                             .resizable()
                             .scaledToFit()
                             .frame(width: 50, height: 50)
@@ -164,8 +165,6 @@ struct QueueView: View {
                     .onDelete(perform: deleteTrack)
                     .onMove(perform: moveTrack)
                 }
-                .background(.black)
-                .padding(.bottom, 50)
                 .listStyle(PlainListStyle())
                 
             }

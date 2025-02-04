@@ -14,8 +14,8 @@ struct MiniPlayer: View {
     var body: some View {
         HStack {
             if let currentIndex = playQueue.currentIndex {
-                if let artwork = playQueue.artworks[currentIndex] {
-                    Image(uiImage: UIImage(data: artwork)!)
+                if let artwork = Utils.shared.loadImageFromDocuments(filePath: playQueue.artworks[currentIndex]) {
+                    Image(uiImage: artwork)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 50, height: 50)
@@ -78,6 +78,13 @@ struct MiniPlayer: View {
         }
         .sheet(isPresented: $isPlayerViewPresented) {
             PlayerView(isPresented: $isPlayerViewPresented)
+                .background(.ultraThinMaterial)
+                .onAppear {
+                    guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                          let controller = windowScene.windows.first?.rootViewController?.presentedViewController
+                            else { return }
+                    controller.view.backgroundColor = .clear
+                }
         }
     }
 }
