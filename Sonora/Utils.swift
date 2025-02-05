@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AVFoundation
 
 class Utils {
     static let shared = Utils()
@@ -66,5 +67,64 @@ class Utils {
         let newImage = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
         return newImage
+    }
+    
+    func getTrackDuration(from path: String) -> String {
+        let fileManager = FileManager.default
+        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let trackURL = documentsDirectory.appendingPathComponent(path)
+        
+        let asset = AVURLAsset(url: trackURL)
+        let duration = asset.duration
+        let durationInSeconds = CMTimeGetSeconds(duration)
+        if durationInSeconds.isFinite {
+            let minutes = Int(durationInSeconds) / 60
+            let seconds = Int(durationInSeconds.truncatingRemainder(dividingBy: 60))
+            let stringSeconds = seconds < 10 ? "0\(seconds)" : "\(seconds)"
+            return "\(minutes):\(stringSeconds)"
+        }
+        else {
+            return ""
+        }
+    }
+    
+    func directoryExists(at path: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        let fileManager = FileManager.default
+        return fileManager.fileExists(atPath: path.path, isDirectory: &isDirectory) && isDirectory.boolValue
+    }
+}
+
+struct ImagePicker: UIViewControllerRepresentable {
+    @Binding var selectedImage: UIImage?
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(selectedImage: $selectedImage)
+    }
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .photoLibrary
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        @Binding var selectedImage: UIImage?
+
+        init(selectedImage: Binding<UIImage?>) {
+            _selectedImage = selectedImage
+        }
+
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            selectedImage = info[.originalImage] as? UIImage
+            picker.dismiss(animated: true)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
+        }
     }
 }

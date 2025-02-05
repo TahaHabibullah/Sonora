@@ -97,12 +97,6 @@ struct AddTracksView: View {
         }
     }
     
-    private func directoryExists(at path: URL) -> Bool {
-        var isDirectory: ObjCBool = false
-        let fileManager = FileManager.default
-        return fileManager.fileExists(atPath: path.path, isDirectory: &isDirectory) && isDirectory.boolValue
-    }
-    
     private func copyFilesToDocuments(sourceURLs: [URL]) -> [String] {
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -110,7 +104,7 @@ struct AddTracksView: View {
         var filePaths: [String] = []
         
         
-        if !directoryExists(at: looseTracksDirectory) {
+        if !Utils.shared.directoryExists(at: looseTracksDirectory) {
             do {
                 try fileManager.createDirectory(at: looseTracksDirectory, withIntermediateDirectories: true, attributes: nil)
             } catch {

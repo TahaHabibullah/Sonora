@@ -44,37 +44,43 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         originalArtists = trackList.map { $0.artist }
         originalArtworks = trackList.map { $0.artwork }
         currentIndex = 0
-        if currentIndex != nil {
-            let tracksQueue = trackListCopy.map { $0.path }
-            let artistsQueue = trackListCopy.map { $0.artist }
-            let titlesQueue = trackListCopy.map { $0.title }
-            let artworksQueue = trackListCopy.map { $0.artwork }
-            
-            let shuffledIndices = tracksQueue.indices.shuffled()
-            var shuffledTracksQueue = shuffledIndices.map { tracksQueue[$0] }
-            var shuffledTitlesQueue = shuffledIndices.map { titlesQueue[$0] }
-            var shuffledArtistsQueue = shuffledIndices.map { artistsQueue[$0] }
-            var shuffledArtworksQueue = shuffledIndices.map { artworksQueue[$0] }
-            
-            shuffledTracksQueue.insert(trackPath, at: 0)
-            shuffledTitlesQueue.insert(track.title, at: 0)
-            shuffledArtistsQueue.insert(track.artist, at: 0)
-            shuffledArtworksQueue.insert(track.artwork, at: 0)
-            
-            if playListName.isEmpty {
-                name = "Loose Tracks"
-            }
-            else {
-                name = playListName
-            }
-            tracks = shuffledTracksQueue
-            titles = shuffledTitlesQueue
-            artists = shuffledArtistsQueue
-            artworks = shuffledArtworksQueue
-            isShuffled = true
-            playCurrentTrack()
-            startPlaybackUpdates()
+        
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Error configuring audio session: \(error.localizedDescription)")
         }
+        
+        let tracksQueue = trackListCopy.map { $0.path }
+        let artistsQueue = trackListCopy.map { $0.artist }
+        let titlesQueue = trackListCopy.map { $0.title }
+        let artworksQueue = trackListCopy.map { $0.artwork }
+        
+        let shuffledIndices = tracksQueue.indices.shuffled()
+        var shuffledTracksQueue = shuffledIndices.map { tracksQueue[$0] }
+        var shuffledTitlesQueue = shuffledIndices.map { titlesQueue[$0] }
+        var shuffledArtistsQueue = shuffledIndices.map { artistsQueue[$0] }
+        var shuffledArtworksQueue = shuffledIndices.map { artworksQueue[$0] }
+        
+        shuffledTracksQueue.insert(trackPath, at: 0)
+        shuffledTitlesQueue.insert(track.title, at: 0)
+        shuffledArtistsQueue.insert(track.artist, at: 0)
+        shuffledArtworksQueue.insert(track.artwork, at: 0)
+        
+        if playListName.isEmpty {
+            name = "Loose Tracks"
+        }
+        else {
+            name = playListName
+        }
+        tracks = shuffledTracksQueue
+        titles = shuffledTitlesQueue
+        artists = shuffledArtistsQueue
+        artworks = shuffledArtworksQueue
+        isShuffled = true
+        playCurrentTrack()
+        startPlaybackUpdates()
     }
     
     func startQueue(from track: Int, in album: Album) {

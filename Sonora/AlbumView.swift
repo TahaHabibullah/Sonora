@@ -175,7 +175,7 @@ struct AlbumView: View {
                                         .truncationMode(.tail)
                                 }
                                 Spacer()
-                                Text(getTrackDuration(from: element))
+                                Text(Utils.shared.getTrackDuration(from: element))
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
                             
@@ -299,7 +299,8 @@ struct AlbumView: View {
                 ImagePicker(selectedImage: $newArtwork)
                     .onDisappear() {
                         let resizedArtwork = Utils.shared.resizeImage(image: newArtwork)
-                        Utils.shared.copyImageToDocuments(artwork: resizedArtwork, directory: album.directory)
+                        album.artwork = nil
+                        album.artwork = Utils.shared.copyImageToDocuments(artwork: resizedArtwork, directory: album.directory)
                     }
             }
             .fileImporter(
@@ -309,25 +310,6 @@ struct AlbumView: View {
             ) { result in
                 handleFileSelection(result: result)
             }
-        }
-    }
-    
-    func getTrackDuration(from path: String) -> String {
-        let fileManager = FileManager.default
-        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let trackURL = documentsDirectory.appendingPathComponent(path)
-        
-        let asset = AVURLAsset(url: trackURL)
-        let duration = asset.duration
-        let durationInSeconds = CMTimeGetSeconds(duration)
-        if durationInSeconds.isFinite {
-            let minutes = Int(durationInSeconds) / 60
-            let seconds = Int(durationInSeconds.truncatingRemainder(dividingBy: 60))
-            let stringSeconds = seconds < 10 ? "0\(seconds)" : "\(seconds)"
-            return "\(minutes):\(stringSeconds)"
-        }
-        else {
-            return ""
         }
     }
     
@@ -363,7 +345,7 @@ struct AlbumView: View {
         album.titles.move(fromOffsets: source, toOffset: destination)
     }
     
-    func deleteFilesFromDocuments(filePaths: [String]) {
+    private func deleteFilesFromDocuments(filePaths: [String]) {
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         
@@ -380,7 +362,7 @@ struct AlbumView: View {
         markedForDeletion.removeAll()
     }
     
-    func copyFilesToDocuments(sourceURLs: [URL], name: String) -> [String] {
+    private func copyFilesToDocuments(sourceURLs: [URL], name: String) -> [String] {
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         let albumDirectory = documentsURL.appendingPathComponent(album.directory)

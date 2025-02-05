@@ -236,13 +236,7 @@ struct AddAlbumView: View {
         }
     }
     
-    func directoryExists(at path: URL) -> Bool {
-        var isDirectory: ObjCBool = false
-        let fileManager = FileManager.default
-        return fileManager.fileExists(atPath: path.path, isDirectory: &isDirectory) && isDirectory.boolValue
-    }
-    
-    func copyFilesToDocuments(sourceURLs: [URL], name: String) -> (first: [String], last: String) {
+    private func copyFilesToDocuments(sourceURLs: [URL], name: String) -> (first: [String], last: String) {
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         var sanitizedAlbumName = name.replacingOccurrences(of: "[^a-zA-Z0-9 ]", with: "_", options: .regularExpression)
@@ -254,7 +248,7 @@ struct AddAlbumView: View {
         
         var albumDirectory = documentsURL.appendingPathComponent(sanitizedAlbumName)
         var count = 1
-        while directoryExists(at: albumDirectory) {
+        while Utils.shared.directoryExists(at: albumDirectory) {
             if count > 1 {
                 let newDirectory = albumDirectory.path.replacingOccurrences(
                     of: "\(sanitizedAlbumName)__\(count-1)",
