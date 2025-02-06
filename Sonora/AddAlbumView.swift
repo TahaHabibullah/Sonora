@@ -10,7 +10,6 @@ import AVFoundation
 
 struct AddAlbumView: View {
     @Binding var isPresented: Bool
-    @State private var editMode: EditMode = .inactive
     @State private var albumName: String = ""
     @State private var artist: String = ""
     @State private var albumArtwork: UIImage? = nil
@@ -22,7 +21,7 @@ struct AddAlbumView: View {
     var body: some View {
         NavigationView {
             GeometryReader { _ in
-                VStack {
+                ScrollView {
                     Button(action: {
                         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                         isImagePickerPresented = true
@@ -100,76 +99,39 @@ struct AddAlbumView: View {
                     .padding([.leading, .trailing])
                     .padding(.top, 10)
 
-                    VStack(spacing: 0) {
-                        if !selectedFiles.isEmpty {
+                    List {
+                        Button(action: {
+                            isFilePickerPresented = true
+                        }) {
                             HStack {
-                                if editMode.isEditing {
-                                    Button(action: {
-                                        cancelChanges()
-                                    }) {
-                                        Text("Cancel")
-                                            .foregroundColor(.blue)
-                                    }
-                                } else {
-                                    Button(action: {
-                                        editMode = editMode == .active ? .inactive : .active
-                                        originalFiles = selectedFiles
-                                    }) {
-                                        Text("Edit")
-                                            .foregroundColor(.blue)
-                                    }
-                                }
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("Add Tracks")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        ForEach(Array(selectedFiles.enumerated()), id: \.element) { index, element in
+                            HStack {
+                                Text(element.deletingPathExtension().lastPathComponent)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
                                 Spacer()
-
-                                if editMode.isEditing {
-                                    Button(action: {
-                                        confirmChanges()
-                                    }) {
-                                        Text("Done")
-                                            .foregroundColor(.blue)
-                                    }
-                                }
+                                Text("\(index+1)")
+                                    .foregroundColor(.gray)
+                                Image(systemName: "line.3.horizontal")
+                                    .foregroundColor(.gray)
+                                    .padding(.horizontal, 10)
                             }
                             .padding([.leading, .trailing])
+                            .listRowInsets(EdgeInsets())
                         }
-                        
-                        List {
-                            ForEach(Array(selectedFiles.enumerated()), id: \.element) { index, element in
-                                HStack {
-                                    Text(element.deletingPathExtension().lastPathComponent)
-                                        .lineLimit(1)
-                                        .truncationMode(.tail)
-                                    Spacer()
-                                    Text("\(index+1)")
-                                        .foregroundColor(.gray)
-                                }
-                                .padding([.leading, .trailing])
-                                .listRowInsets(EdgeInsets())
-                            }
-                            .onDelete(perform: editMode.isEditing ? deleteFile: nil)
-                            .onMove(perform: editMode.isEditing ? moveFile: nil)
-                        }
-                        .id(editMode.isEditing)
-                        .environment(\.editMode, $editMode)
-                        .padding(.top, 5)
-                        .listStyle(PlainListStyle())
+                        .onDelete(perform: deleteFile)
+                        .onMove(perform: moveFile)
                     }
-                    .padding(.top, 5)
-                    
-                    Button(action: {
-                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                        isFilePickerPresented = true
-                    }) {
-                        HStack {
-                            Image(systemName: "square.and.arrow.down")
-                            Text("Import Files")
-                        }
-                        .padding()
-                        .foregroundColor(.white)
-                        .background(.blue)
-                        .cornerRadius(8)
-                    }
-                    .padding()
+                    .listStyle(PlainListStyle())
+                    .scrollDisabled(true)
+                    .frame(height: CGFloat(100 + selectedFiles.count * 45))
                 }
                 .navigationTitle("New Album")
                 .navigationBarTitleDisplayMode(.inline)
@@ -205,21 +167,8 @@ struct AddAlbumView: View {
         }
     }
         
-    private func cancelChanges() {
-        selectedFiles = originalFiles
-        editMode = .inactive
-    }
-
-    private func confirmChanges() {
-        originalFiles = selectedFiles
-        editMode = .inactive
-    }
-        
     private func deleteFile(at offsets: IndexSet) {
         selectedFiles.remove(atOffsets: offsets)
-        if selectedFiles.isEmpty {
-            editMode = .inactive
-        }
     }
 
     private func moveFile(from source: IndexSet, to destination: Int) {

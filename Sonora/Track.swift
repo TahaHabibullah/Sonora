@@ -8,12 +8,13 @@
 import Foundation
 import SwiftUI
 
-struct Track: Codable, Identifiable {
+struct Track: Codable, Identifiable, Hashable {
     let id: UUID
     var artist: String
     var title: String
     var artwork: String?
     var path: String
+    var duration: String
     
     init(artist: String, artwork: String?, path: String) {
         self.id = UUID()
@@ -21,6 +22,16 @@ struct Track: Codable, Identifiable {
         self.title = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
         self.artwork = artwork
         self.path = path
+        self.duration = Utils.shared.getTrackDuration(from: path)
+    }
+    
+    init(artist: String, title: String, artwork: String?, path: String) {
+        self.id = UUID()
+        self.artist = artist
+        self.title = title
+        self.artwork = artwork
+        self.path = path
+        self.duration = Utils.shared.getTrackDuration(from: path)
     }
 }
 
@@ -55,23 +66,34 @@ class TrackManager {
     
     func deleteTrack(_ track: Track) {
         var tracks = fetchTracks()
-        self.deleteTrackFromDirectory(path: track.path)
+        self.deleteTrackFromDirectory(trackPath: track.path, artworkPath: track.artwork)
         tracks.removeAll { $0.id == track.id }
         if let data = try? JSONEncoder().encode(tracks) {
             UserDefaults.standard.set(data, forKey: storageKey)
         }
     }
     
-    private func deleteTrackFromDirectory(path: String) {
+    private func deleteTrackFromDirectory(trackPath: String, artworkPath: String?) {
         let fileManager = FileManager.default
         let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         do {
-            let trackPath = documentsDirectory.appendingPathComponent(path)
-            if fileManager.fileExists(atPath: trackPath.path) {
-                try fileManager.removeItem(at: trackPath)
+            let trackURL = documentsDirectory.appendingPathComponent(trackPath)
+            if fileManager.fileExists(atPath: trackURL.path) {
+                try fileManager.removeItem(at: trackURL)
             }
         } catch {
-            print("Failed to delete file at path: \(path)")
+            print("Failed to delete file at path: \(trackPath)")
+        }
+        
+        do {
+            if let path = artworkPath {
+                let artworkURL = documentsDirectory.appendingPathComponent(path)
+                if fileManager.fileExists(atPath: artworkURL.path) {
+                    try fileManager.removeItem(at: artworkURL)
+                }
+            }
+        } catch {
+            print("Failed to delete file at path: \(artworkPath != nil ? artworkPath! : "No artwork path")")
         }
     }
 }

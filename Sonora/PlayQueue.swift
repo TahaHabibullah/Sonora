@@ -31,8 +31,57 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         setupRemoteTransportControls()
         observeAudioInterruptions()
     }
-
-    func startQueue(from track: Track, in trackList: [Track], playListName: String = "") {
+    
+    func startQueue(from track: Int, in album: Album) {
+        currentIndex = track
+        if currentIndex != nil {
+            do {
+                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+                try AVAudioSession.sharedInstance().setActive(true)
+            } catch {
+                print("Error configuring audio session: \(error.localizedDescription)")
+            }
+            name = album.name
+            tracks = album.tracks
+            titles = album.titles
+            artworks = Array(repeating: album.artwork, count: album.titles.count)
+            artists = Array(repeating: album.artist, count: album.titles.count)
+            
+            originalTracks = album.tracks
+            originalTitles = album.titles
+            originalArtworks = Array(repeating: album.artwork, count: album.titles.count)
+            originalArtists = Array(repeating: album.artist, count: album.titles.count)
+            isShuffled = false
+            playCurrentTrack()
+            startPlaybackUpdates()
+        }
+    }
+    
+    func startShuffledQueue(from album: Album) {
+        currentIndex = 0
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Error configuring audio session: \(error.localizedDescription)")
+        }
+        name = album.name
+        let shuffledIndices = album.tracks.indices.shuffled()
+        originalTracks = album.tracks
+        originalTitles = album.titles
+        originalArtworks = Array(repeating: album.artwork, count: album.titles.count)
+        originalArtists = Array(repeating: album.artist, count: album.titles.count)
+        
+        tracks = shuffledIndices.map { album.tracks[$0] }
+        titles = shuffledIndices.map { album.titles[$0] }
+        artworks = Array(repeating: album.artwork, count: album.titles.count)
+        artists = Array(repeating: album.artist, count: album.titles.count)
+        isShuffled = true
+        playCurrentTrack()
+        startPlaybackUpdates()
+    }
+    
+    func startPlaylistQueue(from track: Track, in trackList: [Track], playlistName: String = "Loose Tracks") {
         let trackPath = track.path
         let trackPaths = trackList.map { $0.path }
         let trackIndex = trackPaths.firstIndex(of: trackPath)
@@ -68,12 +117,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         shuffledArtistsQueue.insert(track.artist, at: 0)
         shuffledArtworksQueue.insert(track.artwork, at: 0)
         
-        if playListName.isEmpty {
-            name = "Loose Tracks"
-        }
-        else {
-            name = playListName
-        }
+        name = playlistName
         tracks = shuffledTracksQueue
         titles = shuffledTitlesQueue
         artists = shuffledArtistsQueue
@@ -83,52 +127,70 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         startPlaybackUpdates()
     }
     
-    func startQueue(from track: Int, in album: Album) {
-        currentIndex = track
-        if currentIndex != nil {
-            do {
-                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
-                try AVAudioSession.sharedInstance().setActive(true)
-            } catch {
-                print("Error configuring audio session: \(error.localizedDescription)")
-            }
-            name = album.name
-            tracks = album.tracks
-            titles = album.titles
-            artworks = Array(repeating: album.artwork, count: album.titles.count)
-            artists = Array(repeating: album.artist, count: album.titles.count)
-            
-            originalTracks = album.tracks
-            originalTitles = album.titles
-            originalArtworks = Array(repeating: album.artwork, count: album.titles.count)
-            originalArtists = Array(repeating: album.artist, count: album.titles.count)
-            isShuffled = false
-            playCurrentTrack()
-            startPlaybackUpdates()
+    func startPlaylistQueueUnshuffled(from trackList: [Track], playlistName: String) {
+        let tracksQueue = trackList.map { $0.path }
+        let artistsQueue = trackList.map { $0.artist }
+        let titlesQueue = trackList.map { $0.title }
+        let artworksQueue = trackList.map { $0.artwork }
+        
+        originalTracks = tracksQueue
+        originalTitles = artistsQueue
+        originalArtists = titlesQueue
+        originalArtworks = artworksQueue
+        currentIndex = 0
+        
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Error configuring audio session: \(error.localizedDescription)")
         }
+        
+        if playlistName.isEmpty {
+            name = "Untitled Playlist"
+        }
+        else {
+            name = playlistName
+        }
+        tracks = tracksQueue
+        titles = titlesQueue
+        artists = artistsQueue
+        artworks = artworksQueue
+        isShuffled = false
+        playCurrentTrack()
+        startPlaybackUpdates()
     }
     
-    func startShuffledQueue(from album: Album) {
-        currentIndex = 0
-        if currentIndex != nil {
-            do {
-                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
-                try AVAudioSession.sharedInstance().setActive(true)
-            } catch {
-                print("Error configuring audio session: \(error.localizedDescription)")
-            }
-        }
-        name = album.name
-        let shuffledIndices = album.tracks.indices.shuffled()
-        originalTracks = album.tracks
-        originalTitles = album.titles
-        originalArtworks = Array(repeating: album.artwork, count: album.titles.count)
-        originalArtists = Array(repeating: album.artist, count: album.titles.count)
+    func startPlaylistQueueShuffled(from trackList: [Track], playlistName: String) {
+        let tracksQueue = trackList.map { $0.path }
+        let titlesQueue = trackList.map { $0.title }
+        let artistsQueue = trackList.map { $0.artist }
+        let artworksQueue = trackList.map { $0.artwork }
         
-        tracks = shuffledIndices.map { album.tracks[$0] }
-        titles = shuffledIndices.map { album.titles[$0] }
-        artworks = Array(repeating: album.artwork, count: album.titles.count)
-        artists = Array(repeating: album.artist, count: album.titles.count)
+        originalTracks = tracksQueue
+        originalTitles = titlesQueue
+        originalArtists = artistsQueue
+        originalArtworks = artworksQueue
+        currentIndex = 0
+        
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Error configuring audio session: \(error.localizedDescription)")
+        }
+        
+        let shuffledIndices = tracksQueue.indices.shuffled()
+        if playlistName.isEmpty {
+            name = "Untitled Playlist"
+        }
+        else {
+            name = playlistName
+        }
+        tracks = shuffledIndices.map { tracksQueue[$0] }
+        titles = shuffledIndices.map { titlesQueue[$0] }
+        artists = shuffledIndices.map { artistsQueue[$0] }
+        artworks = shuffledIndices.map { artworksQueue[$0] }
         isShuffled = true
         playCurrentTrack()
         startPlaybackUpdates()
@@ -261,6 +323,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         isPlaying = false
         audioPlayer = nil
         currentIndex = nil
+        isShuffled = false
         name = ""
         tracks = []
         artists = []

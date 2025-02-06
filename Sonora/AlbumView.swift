@@ -280,7 +280,7 @@ struct AlbumView: View {
                             }
                             .foregroundColor(.blue)
                         }
-                        .confirmationDialog("Are you sure you want to delete this album?",
+                        .confirmationDialog("Are you sure you want to delete this playlist?",
                                             isPresented: $showDeleteConfirmation,
                                             titleVisibility: .visible) {
                             Button("Delete", role: .destructive) {

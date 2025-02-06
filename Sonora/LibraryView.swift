@@ -15,6 +15,7 @@ struct LibraryView: View {
     @State private var isAddTracksPresented = false
     @State private var isEditTrackPresented = false
     @State private var isFilePickerPresented = false
+    @State private var showDeleteConfirmation = false
     @State private var selectedFiles: [URL] = []
     @State private var albums: [Album] = []
     @State private var looseTracks: [Track] = []
@@ -27,7 +28,7 @@ struct LibraryView: View {
     ]
     
     var body: some View {
-        VStack() {
+        VStack {
             NavigationStack {
                 Picker(selection: $selectedTab, label: Text("")) {
                     Text("Albums").tag(0)
@@ -104,7 +105,7 @@ struct LibraryView: View {
                                 List {
                                     ForEach(looseTracks) { track in
                                         Button(action: {
-                                            playQueue.startQueue(from: track, in: looseTracks)
+                                            playQueue.startPlaylistQueue(from: track, in: looseTracks)
                                         }) {
                                             HStack {
                                                 if let artwork = Utils.shared.loadImageFromDocuments(filePath: track.artwork) {
@@ -137,7 +138,7 @@ struct LibraryView: View {
                                                     }
                                                 }
                                                 Spacer()
-                                                Text(Utils.shared.getTrackDuration(from: track.path))
+                                                Text(track.duration)
                                                     .font(.subheadline)
                                                     .foregroundColor(.gray)
                                                 
@@ -153,8 +154,8 @@ struct LibraryView: View {
                                                         Label("Edit Details", systemImage: "pencil")
                                                     }
                                                     Button(role: .destructive, action: {
-                                                        TrackManager.shared.deleteTrack(track)
-                                                        looseTracks = TrackManager.shared.fetchTracks()
+                                                        trackToEdit = track
+                                                        showDeleteConfirmation = true
                                                     }) {
                                                         Label("Delete Track", systemImage: "trash")
                                                     }
@@ -207,6 +208,19 @@ struct LibraryView: View {
                             }
                             .foregroundColor(.blue)
                         }
+                    }
+                }
+                .confirmationDialog("Are you sure you want to delete this track?",
+                                    isPresented: $showDeleteConfirmation,
+                                    titleVisibility: .visible) {
+                    Button("Delete", role: .destructive) {
+                        showDeleteConfirmation = false
+                        TrackManager.shared.deleteTrack(trackToEdit!)
+                        looseTracks = TrackManager.shared.fetchTracks()
+                        trackToEdit = nil
+                    }
+                    Button("Cancel", role: .cancel) {
+                        showDeleteConfirmation = false
                     }
                 }
                 .fileImporter(

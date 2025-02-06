@@ -69,6 +69,21 @@ class Utils {
         return newImage
     }
     
+    func resizeImageSmall(image: UIImage?) -> UIImage? {
+        guard image != nil else { return nil }
+        let size = image!.size
+        let widthRatio  = 50 / size.width
+        let heightRatio = 50 / size.height
+        let scaleFactor = min(widthRatio, heightRatio)
+        let newSize = CGSize(width: size.width * scaleFactor, height: size.height * scaleFactor)
+        
+        UIGraphicsBeginImageContextWithOptions(newSize, false, image!.scale)
+        image!.draw(in: CGRect(origin: .zero, size: newSize))
+        let newImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        return newImage
+    }
+    
     func getTrackDuration(from path: String) -> String {
         let fileManager = FileManager.default
         let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!

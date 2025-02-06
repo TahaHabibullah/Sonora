@@ -66,6 +66,15 @@ class AlbumManager {
         }
     }
     
+    func convertToTrackList(_ album: Album) -> [Track] {
+        var tracks: [Track] = []
+        for (index, element) in album.tracks.enumerated() {
+            let track = Track(artist: album.artist, title: album.titles[index], artwork: album.artwork, path: element)
+            tracks.append(track)
+        }
+        return tracks
+    }
+    
     private func deleteAlbumDirectory(path: String) {
         let fileManager = FileManager.default
         let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
