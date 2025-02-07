@@ -13,8 +13,8 @@ struct MiniPlayer: View {
 
     var body: some View {
         HStack {
-            if let currentIndex = playQueue.currentIndex {
-                if let artwork = Utils.shared.loadImageFromDocuments(filePath: playQueue.artworks[currentIndex]) {
+            if let currentTrack = playQueue.currentTrack {
+                if let artwork = Utils.shared.loadImageFromDocuments(filePath: currentTrack.artwork) {
                     Image(uiImage: artwork)
                         .resizable()
                         .scaledToFit()
@@ -27,7 +27,7 @@ struct MiniPlayer: View {
                         .background(Color.gray.opacity(0.5))
                 }
                 
-                Text(playQueue.titles[currentIndex])
+                Text(currentTrack.title)
                     .padding(.leading, 10)
                     .font(.headline)
                     .lineLimit(1)

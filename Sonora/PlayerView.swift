@@ -20,13 +20,6 @@ struct PlayerView: View {
     var body: some View {
         let screenHeight = UIScreen.main.bounds.height
         let imageSize: CGFloat = screenHeight > 812 ? 300 : screenHeight > 736 ? 250 : 200
-        
-        ZStack {
-            if isQueuePresented {
-                QueueView(isPresented: $isQueuePresented)
-                    .transition(.opacity)
-                    .zIndex(1)
-            }
             
             VStack(spacing: 0) {
                 HStack {
@@ -40,12 +33,12 @@ struct PlayerView: View {
                 }
                 
                 VStack(spacing: 0) {
-                    if let currentIndex = playQueue.currentIndex {
+                    if let currentTrack = playQueue.currentTrack {
                         Text(playQueue.name)
                             .font(.headline)
                             .bold()
                             .padding()
-                        if let artwork = Utils.shared.loadImageFromDocuments(filePath: playQueue.artworks[currentIndex]) {
+                        if let artwork = Utils.shared.loadImageFromDocuments(filePath: currentTrack.artwork) {
                             Image(uiImage: artwork)
                                 .resizable()
                                 .scaledToFit()
@@ -61,11 +54,11 @@ struct PlayerView: View {
                         }
                         
                         VStack {
-                            Text(playQueue.titles[currentIndex])
+                            Text(currentTrack.title)
                                 .font(.title2)
                                 .bold()
                             
-                            Text(playQueue.artists[currentIndex])
+                            Text(currentTrack.artist)
                                 .font(.headline)
                                 .foregroundColor(.gray)
                         }
@@ -98,7 +91,7 @@ struct PlayerView: View {
                     Spacer()
                     
                     VStack(spacing: 0) {
-                        Slider(value: $sliderValue, in: 0...1, step: 0.01, onEditingChanged: { editing in
+                        Slider(value: $sliderValue, in: 0...1, step: 0.001, onEditingChanged: { editing in
                             isEditing = editing
                             if !editing {
                                 playQueue.audioPlayer?.currentTime = sliderValue * playQueue.audioPlayer!.duration
@@ -191,9 +184,7 @@ struct PlayerView: View {
                         }
                         
                         Button(action: {
-                            withAnimation(.easeInOut(duration: 0.25)) {
-                                isQueuePresented = true
-                            }
+                            isQueuePresented = true
                         }) {
                             Image(systemName: "list.triangle")
                                 .resizable()
@@ -202,7 +193,7 @@ struct PlayerView: View {
                                 .foregroundColor(.gray)
                                 .padding()
                         }
-                        .disabled(playQueue.currentIndex == nil)
+                        .disabled(playQueue.currentTrack == nil)
                     }
                     .padding(.top, 30)
                     
@@ -225,7 +216,7 @@ struct PlayerView: View {
                 }
                 .onAppear {
                     UISlider.appearance().setThumbImage(UIImage(systemName: "circle.fill"), for: .normal)
-                    if playQueue.currentIndex != nil {
+                    if playQueue.currentTrack != nil {
                         startTimer()
                     }
                 }
@@ -234,7 +225,9 @@ struct PlayerView: View {
                 }
                 .padding(.horizontal, 15)
             }
-        }
+            .fullScreenCover(isPresented: $isQueuePresented) {
+                QueueView(isPresented: $isQueuePresented)
+            }
     }
 
     private func startTimer() {

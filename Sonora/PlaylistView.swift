@@ -20,6 +20,7 @@ struct PlaylistView: View {
     @State private var isEditingName = false
     @State private var currentTrackIndex: Int?
     @State private var newArtwork: UIImage? = nil
+    @State private var preloadedImages: [String?: UIImage?] = [:]
     @State var playlist: Playlist
     @FocusState private var nameFieldFocused: Bool
     
@@ -81,6 +82,7 @@ struct PlaylistView: View {
                     HStack(spacing: 0) {
                         Button(action: {
                             playQueue.startPlaylistQueueUnshuffled(from: tracklist, playlistName: playlist.name)
+                            playlist.lastPlayed = Date.now
                         }) {
                             HStack {
                                 Text("Play")
@@ -102,6 +104,7 @@ struct PlaylistView: View {
                         
                         Button(action: {
                             playQueue.startPlaylistQueueShuffled(from: tracklist, playlistName: playlist.name)
+                            playlist.lastPlayed = Date.now
                         }) {
                             HStack {
                                 Text("Shuffle")
@@ -127,13 +130,18 @@ struct PlaylistView: View {
                     ForEach(Array(playlist.tracklist.enumerated()), id: \.element) { index, element in
                         Button(action: {
                             playQueue.startPlaylistQueue(from: element, in: playlist.tracklist, playlistName: playlist.name)
+                            playlist.lastPlayed = Date.now
                         }) {
                             HStack {
-                                if let artwork = Utils.shared.loadImageFromDocuments(filePath: element.artwork) {
-                                    Image(uiImage: artwork)
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 50, height: 50)
+                                if !preloadedImages.isEmpty {
+                                    if let artworkPath = element.artwork {
+                                        if let artwork = preloadedImages[artworkPath]! {
+                                            Image(uiImage: artwork)
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: 50, height: 50)
+                                        }
+                                    }
                                 }
                                 else {
                                     Image(systemName: "music.note.list")
@@ -166,7 +174,12 @@ struct PlaylistView: View {
                                 Menu {
                                     Button(action: {
                                     }) {
-                                        Label("Add to Playlist", systemImage: "plus.square")
+                                        Label("Add To Playlist", systemImage: "plus.square")
+                                    }
+                                    Button(action: {
+                                        playQueue.addToQueue(element)
+                                    }) {
+                                        Label("Add To Queue", systemImage: "text.badge.plus")
                                     }
                                     Button(action: {
                                         trackToEdit = element
@@ -191,10 +204,16 @@ struct PlaylistView: View {
                     .onMove(perform: editMode.isEditing ? moveTrack : nil)
                 }
                 .id(editMode.isEditing)
-                .frame(height: CGFloat(playlist.tracklist.count * 80))
+                .frame(height: CGFloat(120 + playlist.tracklist.count * 62))
                 .listStyle(PlainListStyle())
                 .scrollDisabled(true)
                 .environment(\.editMode, $editMode)
+            }
+        }
+        .onAppear {
+            for track in playlist.tracklist {
+                let artwork = Utils.shared.loadImageFromDocuments(filePath: track.artwork)
+                preloadedImages[track.artwork] = Utils.shared.resizeImageSmall(image: artwork)
             }
         }
         .toolbar {
@@ -274,6 +293,11 @@ struct PlaylistView: View {
         .sheet(isPresented: $isTrackPickerPresented) {
             TrackPickerView(isPresented: $isTrackPickerPresented, selectedTracks: $tracksToAdd)
                 .onDisappear {
+                    let artworkPaths = tracksToAdd.map { $0.artwork }
+                    let artworks = artworkPaths.map { Utils.shared.loadImageFromDocuments(filePath: $0) }
+                    for (index, artwork) in artworks.enumerated() {
+                        preloadedImages[artworkPaths[index]] = artwork
+                    }
                     playlist.tracklist.append(contentsOf: tracksToAdd)
                     PlaylistManager.shared.replacePlaylist(playlist)
                 }

@@ -10,7 +10,7 @@ import SwiftUI
 struct TrackPickerView: View {
     @Binding var isPresented: Bool
     @Binding var selectedTracks: [Track]
-    @State private var selectedIds = Set<UUID>()
+    @State private var selectedPaths = Set<String>()
     @State private var allTracks: [Track] = []
     @State private var searchText = ""
     @State private var preloadedImages: [String?: UIImage?] = [:]
@@ -26,11 +26,11 @@ struct TrackPickerView: View {
                 List {
                     ForEach(filteredTracks, id: \.self) { track in
                         Button(action: {
-                            if selectedIds.contains(track.id) {
-                                selectedIds.remove(track.id)
+                            if selectedPaths.contains(track.path) {
+                                selectedPaths.remove(track.path)
                             }
                             else {
-                                selectedIds.insert(track.id)
+                                selectedPaths.insert(track.path)
                             }
                         }) {
                             HStack {
@@ -71,13 +71,13 @@ struct TrackPickerView: View {
                                     .foregroundColor(.gray)
                             }
                         }
-                        .listRowBackground(selectedIds.contains(track.id) ? Color.blue.opacity(0.1) : Color.clear)
+                        .listRowBackground(selectedPaths.contains(track.path) ? Color.blue.opacity(0.1) : Color.clear)
                     }
                 }
                 .searchable(text: $searchText, prompt: "Search Tracks")
                 .listStyle(PlainListStyle())
             }
-            .navigationTitle(selectedIds.isEmpty ? "All Tracks" : "\(selectedIds.count) Tracks Selected")
+            .navigationTitle(selectedPaths.isEmpty ? "All Tracks" : "\(selectedPaths.count) Tracks Selected")
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(
                 leading: Button("Cancel") {
@@ -85,7 +85,7 @@ struct TrackPickerView: View {
                 }
                 .foregroundColor(.blue),
                 trailing: Button("Done") {
-                    selectedTracks.append(contentsOf: allTracks.filter { selectedIds.contains($0.id) })
+                    selectedTracks = allTracks.filter { selectedPaths.contains($0.path) }
                     isPresented = false
                 }
                 .foregroundColor(.blue)
@@ -103,6 +103,10 @@ struct TrackPickerView: View {
                 for track in looseTracks {
                     let artwork = Utils.shared.loadImageFromDocuments(filePath: track.artwork)
                     preloadedImages[track.artwork] = Utils.shared.resizeImageSmall(image: artwork)
+                }
+                
+                for track in selectedTracks {
+                    selectedPaths.insert(track.path)
                 }
             }
         }

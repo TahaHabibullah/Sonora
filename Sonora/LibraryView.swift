@@ -148,6 +148,11 @@ struct LibraryView: View {
                                                         Label("Add To Playlist", systemImage: "plus.square")
                                                     }
                                                     Button(action: {
+                                                        playQueue.addToQueue(track)
+                                                    }) {
+                                                        Label("Add To Queue", systemImage: "text.badge.plus")
+                                                    }
+                                                    Button(action: {
                                                         trackToEdit = track
                                                         isEditTrackPresented = true
                                                     }) {

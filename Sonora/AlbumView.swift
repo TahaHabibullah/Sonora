@@ -196,6 +196,14 @@ struct AlbumView: View {
                                             Label("Add to Playlist", systemImage: "plus.square")
                                         }
                                         Button(action: {
+                                            playQueue.addToQueue(Track(artist: album.artist,
+                                                                              title: album.titles[index],
+                                                                              artwork: album.artwork,
+                                                                              path: element))
+                                        }) {
+                                            Label("Add To Queue", systemImage: "text.badge.plus")
+                                        }
+                                        Button(action: {
                                             editingTrackIndex = index
                                         }) {
                                             Label("Rename Track", systemImage: "pencil")
@@ -219,7 +227,7 @@ struct AlbumView: View {
                 }
                 .id(editMode.isEditing)
                 .scrollDisabled(true)
-                .frame(height: CGFloat(album.tracks.count * 80))
+                .frame(height: CGFloat(120 + album.tracks.count * 62))
                 .environment(\.editMode, $editMode)
                 .listStyle(PlainListStyle())
             }
@@ -301,6 +309,7 @@ struct AlbumView: View {
                         let resizedArtwork = Utils.shared.resizeImage(image: newArtwork)
                         album.artwork = nil
                         album.artwork = Utils.shared.copyImageToDocuments(artwork: resizedArtwork, directory: album.directory)
+                        AlbumManager.shared.replaceAlbum(album)
                     }
             }
             .fileImporter(

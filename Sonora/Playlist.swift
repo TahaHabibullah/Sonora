@@ -13,12 +13,25 @@ struct Playlist: Codable, Identifiable {
     var name: String
     var artwork: Data?
     var tracklist: [Track]
+    var lastPlayed: Date?
+    var dateAdded: Date
     
     init(name: String, artwork: UIImage?, tracklist: [Track]) {
         self.id = UUID()
         self.name = name
         self.artwork = artwork?.jpegData(compressionQuality: 0.8)
         self.tracklist = tracklist
+        self.lastPlayed = nil
+        self.dateAdded = Date.now
+    }
+    
+    init() {
+        self.id = UUID()
+        self.name = ""
+        self.artwork = nil
+        self.tracklist = []
+        self.lastPlayed = nil
+        self.dateAdded = Date.now
     }
     
     mutating func replaceArtwork(_ artwork: UIImage) {

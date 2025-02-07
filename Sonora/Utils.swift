@@ -72,8 +72,8 @@ class Utils {
     func resizeImageSmall(image: UIImage?) -> UIImage? {
         guard image != nil else { return nil }
         let size = image!.size
-        let widthRatio  = 50 / size.width
-        let heightRatio = 50 / size.height
+        let widthRatio  = 100 / size.width
+        let heightRatio = 100 / size.height
         let scaleFactor = min(widthRatio, heightRatio)
         let newSize = CGSize(width: size.width * scaleFactor, height: size.height * scaleFactor)
         
