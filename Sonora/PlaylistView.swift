@@ -303,10 +303,15 @@ struct PlaylistView: View {
                 }
         }
         .sheet(item: $trackToEdit) { track in
-            EditTrackView(track: track)
-                .onDisappear {
-                    
-                }
+            if let index = playlist.tracklist.firstIndex(where: { $0.id == track.id }) {
+                EditTrackView(playlist: playlist, track: track, trackIndex: index)
+                    .onDisappear {
+                        playlist = PlaylistManager.shared.fetchPlaylist(playlist.id)
+                        let artworkPath = playlist.tracklist[index].artwork
+                        let artwork = Utils.shared.loadImageFromDocuments(filePath: artworkPath)
+                        preloadedImages[artworkPath] = artwork
+                    }
+            }
         }
     }
     

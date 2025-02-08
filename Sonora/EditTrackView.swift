@@ -10,8 +10,16 @@ import SwiftUI
 struct EditTrackView: View {
     @Environment(\.presentationMode) var presentationMode
     @State var track: Track
+    @State var playlist: Playlist?
+    var trackIndex: Int?
     @State private var newArtwork: UIImage? = nil
     @State private var isImagePickerPresented = false
+    
+    init(playlist: Playlist? = nil, track: Track, trackIndex: Int? = nil) {
+        self.playlist = playlist
+        self.track = track
+        self.trackIndex = trackIndex
+    }
     
     var body: some View {
         NavigationView {
@@ -107,7 +115,13 @@ struct EditTrackView: View {
                     }
                     .foregroundColor(.blue),
                     trailing: Button("Save") {
-                        TrackManager.shared.replaceTrack(track)
+                        if let index = trackIndex {
+                            playlist!.tracklist[index] = track
+                            PlaylistManager.shared.replacePlaylist(playlist!)
+                        }
+                        else {
+                            TrackManager.shared.replaceTrack(track)
+                        }
                         presentationMode.wrappedValue.dismiss()
                     }
                     .foregroundColor(.blue)
@@ -121,7 +135,6 @@ struct EditTrackView: View {
                     let resizedArtwork = Utils.shared.resizeImage(image: newArtwork)
                     let artworkPath = Utils.shared.copyTrackImageToDocuments(artwork: resizedArtwork, trackPath: track.path)
                     track.artwork = artworkPath
-                    TrackManager.shared.replaceTrack(track)
                 }
         }
     }

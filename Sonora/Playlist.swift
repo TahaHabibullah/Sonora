@@ -51,6 +51,11 @@ class PlaylistManager {
         return (try? JSONDecoder().decode([Playlist].self, from: data)) ?? []
     }
     
+    func fetchPlaylist(_ id: UUID) -> Playlist {
+        let playlists = fetchPlaylists()
+        return playlists[playlists.firstIndex(where: { $0.id == id})!]
+    }
+    
     func savePlaylist(_ playlist: Playlist) {
         var playlists = fetchPlaylists()
         playlists.append(playlist)
