@@ -12,14 +12,16 @@ struct AlbumView: View {
     @EnvironmentObject var playQueue: PlayQueue
     @State private var isFilePickerPresented = false
     @State private var isImagePickerPresented = false
+    @State private var isAddToPlaylistPresented = false
     @State private var showDeleteConfirmation = false
     @State private var editMode: EditMode = .inactive
     @State private var isEditingName = false
     @State private var isEditingArtists = false
     @State private var editingTrackIndex: Int? = nil
-    @State private var currentTrackIndex: Int?
+    @State private var trackToAdd: Track? = nil
     @State private var newArtwork: UIImage? = nil
     @State private var markedForDeletion: [String] = []
+    @State private var showPopup: String = ""
     @State var album: Album
     @FocusState private var nameFieldFocused: Bool
     @FocusState private var artistFieldFocused: Bool
@@ -34,6 +36,7 @@ struct AlbumView: View {
                         .scaledToFit()
                         .frame(width: 200, height: 200)
                         .shadow(color: .gray, radius: 10)
+                        .animation(nil)
                 } else {
                     Image(systemName: "music.note.list")
                         .font(.title)
@@ -42,6 +45,7 @@ struct AlbumView: View {
                         .foregroundColor(.gray)
                         .border(.gray, width: 1)
                         .shadow(color: .gray, radius: 10)
+                        .animation(nil)
                 }
                 
                 if isEditingName {
@@ -153,7 +157,7 @@ struct AlbumView: View {
                         .padding()
                     }
                 }
-
+                
                 List {
                     ForEach(Array(album.tracks.enumerated()), id: \.element) { index, element in
                         Button(action: {
@@ -178,7 +182,7 @@ struct AlbumView: View {
                                 Text(Utils.shared.getTrackDuration(from: element))
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
-                            
+                                
                                 if editingTrackIndex == index {
                                     Button(action: {
                                         confirmTrackChanges()
@@ -192,14 +196,18 @@ struct AlbumView: View {
                                 else {
                                     Menu {
                                         Button(action: {
+                                            trackToAdd = Track(artist: album.artist, title: album.titles[index], artwork: album.artwork, path: album.tracks[index])
                                         }) {
-                                            Label("Add to Playlist", systemImage: "plus.square")
+                                            Label("Add To Playlist", systemImage: "plus.square")
                                         }
                                         Button(action: {
                                             playQueue.addToQueue(Track(artist: album.artist,
-                                                                              title: album.titles[index],
-                                                                              artwork: album.artwork,
-                                                                              path: element))
+                                                                       title: album.titles[index],
+                                                                       artwork: album.artwork,
+                                                                       path: element))
+                                            withAnimation(.linear(duration: 0.25)) {
+                                                showPopup = "Added to queue"
+                                            }
                                         }) {
                                             Label("Add To Queue", systemImage: "text.badge.plus")
                                         }
@@ -284,7 +292,7 @@ struct AlbumView: View {
                         } label: {
                             HStack {
                                 Image(systemName: "ellipsis.circle")
-                                .font(.headline)
+                                    .font(.headline)
                             }
                             .foregroundColor(.blue)
                         }
@@ -312,12 +320,40 @@ struct AlbumView: View {
                         AlbumManager.shared.replaceAlbum(album)
                     }
             }
+            .sheet(item: $trackToAdd) { track in
+                AddToPlaylistView(showPopup: $showPopup, track: track)
+            }
             .fileImporter(
                 isPresented: $isFilePickerPresented,
                 allowedContentTypes: [.audio],
                 allowsMultipleSelection: true
             ) { result in
                 handleFileSelection(result: result)
+            }
+        }
+        .overlay {
+            if !showPopup.isEmpty {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Image(systemName: "checkmark.circle")
+                            .font(.subheadline)
+                        Text(showPopup)
+                            .font(.subheadline)
+                    }
+                    .padding(8)
+                    .background(Color.gray.opacity(0.5))
+                    .cornerRadius(10)
+                    .padding(.bottom, 60)
+                    .transition(.opacity)
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation(.easeOut(duration: 0.5)) {
+                                showPopup = ""
+                            }
+                        }
+                    }
+                }
             }
         }
     }

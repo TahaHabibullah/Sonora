@@ -31,7 +31,10 @@ struct PlaylistsView: View {
                                             .frame(width: 75, height: 75)
                                             .background(Color.black)
                                             .foregroundColor(.gray)
-                                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 10)
+                                                .stroke(.gray, lineWidth: 1)
+                                            )
                                     }
                                     if !playlist.name.isEmpty {
                                         Text(playlist.name)

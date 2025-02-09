@@ -14,11 +14,12 @@ struct PlaylistView: View {
     @State private var isTrackPickerPresented = false
     @State private var isImagePickerPresented = false
     @State private var showDeleteConfirmation = false
+    @State private var showPopup: String = ""
     @State private var trackToEdit: Track? = nil
+    @State private var trackToAdd: Track? = nil
     @State private var tracksToAdd: [Track] = []
     @State private var editMode: EditMode = .inactive
     @State private var isEditingName = false
-    @State private var currentTrackIndex: Int?
     @State private var newArtwork: UIImage? = nil
     @State private var preloadedImages: [String?: UIImage?] = [:]
     @State var playlist: Playlist
@@ -33,6 +34,7 @@ struct PlaylistView: View {
                         .scaledToFit()
                         .frame(width: 200, height: 200)
                         .shadow(color: .gray, radius: 10)
+                        .animation(nil)
                 } else {
                     Image(systemName: "music.note.list")
                         .font(.title)
@@ -41,6 +43,7 @@ struct PlaylistView: View {
                         .foregroundColor(.gray)
                         .border(.gray, width: 1)
                         .shadow(color: .gray, radius: 10)
+                        .animation(nil)
                 }
                 
                 if isEditingName {
@@ -173,11 +176,15 @@ struct PlaylistView: View {
                                 
                                 Menu {
                                     Button(action: {
+                                        trackToAdd = element
                                     }) {
                                         Label("Add To Playlist", systemImage: "plus.square")
                                     }
                                     Button(action: {
                                         playQueue.addToQueue(element)
+                                        withAnimation(.linear(duration: 0.25)) {
+                                            showPopup = "Added to queue"
+                                        }
                                     }) {
                                         Label("Add To Queue", systemImage: "text.badge.plus")
                                     }
@@ -280,6 +287,31 @@ struct PlaylistView: View {
                 }
             }
         }
+        .overlay {
+            if !showPopup.isEmpty {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Image(systemName: "checkmark.circle")
+                            .font(.subheadline)
+                        Text(showPopup)
+                            .font(.subheadline)
+                    }
+                    .padding(8)
+                    .background(Color.gray.opacity(0.5))
+                    .cornerRadius(10)
+                    .padding(.bottom, 60)
+                    .transition(.opacity)
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation(.easeOut(duration: 0.5)) {
+                                showPopup = ""
+                            }
+                        }
+                    }
+                }
+            }
+        }
         .sheet(isPresented: $isImagePickerPresented) {
             ImagePicker(selectedImage: $newArtwork)
                 .onDisappear() {
@@ -312,6 +344,9 @@ struct PlaylistView: View {
                         preloadedImages[artworkPath] = artwork
                     }
             }
+        }
+        .sheet(item: $trackToAdd) { track in
+            AddToPlaylistView(showPopup: $showPopup, track: track)
         }
     }
     

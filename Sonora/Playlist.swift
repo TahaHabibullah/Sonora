@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-struct Playlist: Codable, Identifiable {
+struct Playlist: Codable, Identifiable, Hashable {
     let id: UUID
     var name: String
     var artwork: Data?

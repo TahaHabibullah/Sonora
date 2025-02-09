@@ -16,10 +16,12 @@ struct LibraryView: View {
     @State private var isEditTrackPresented = false
     @State private var isFilePickerPresented = false
     @State private var showDeleteConfirmation = false
+    @State private var showPopup: String = ""
     @State private var selectedFiles: [URL] = []
     @State private var albums: [Album] = []
     @State private var looseTracks: [Track] = []
     @State private var trackToEdit: Track? = nil
+    @State private var trackToAdd: Track? = nil
     @State private var selectedTab: Int = 0
     
     private let columns = [
@@ -113,12 +115,14 @@ struct LibraryView: View {
                                                         .resizable()
                                                         .scaledToFit()
                                                         .frame(width: 50, height: 50)
+                                                        .animation(nil)
                                                 }
                                                 else {
                                                     Image(systemName: "music.note.list")
                                                         .font(.subheadline)
                                                         .frame(width: 50, height: 50)
                                                         .background(Color.gray.opacity(0.5))
+                                                        .animation(nil)
                                                 }
                                                 VStack(spacing: 0) {
                                                     HStack {
@@ -144,11 +148,15 @@ struct LibraryView: View {
                                                 
                                                 Menu {
                                                     Button(action: {
+                                                        trackToAdd = track
                                                     }) {
                                                         Label("Add To Playlist", systemImage: "plus.square")
                                                     }
                                                     Button(action: {
                                                         playQueue.addToQueue(track)
+                                                        withAnimation(.linear(duration: 0.25)) {
+                                                            showPopup = "Added to queue"
+                                                        }
                                                     }) {
                                                         Label("Add To Queue", systemImage: "text.badge.plus")
                                                     }
@@ -228,6 +236,31 @@ struct LibraryView: View {
                         showDeleteConfirmation = false
                     }
                 }
+                .overlay {
+                    if !showPopup.isEmpty {
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Image(systemName: "checkmark.circle")
+                                    .font(.subheadline)
+                                Text(showPopup)
+                                    .font(.subheadline)
+                            }
+                            .padding(8)
+                            .background(Color.gray.opacity(0.5))
+                            .cornerRadius(10)
+                            .padding(.bottom, 60)
+                            .transition(.opacity)
+                            .onAppear {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    withAnimation(.easeOut(duration: 0.5)) {
+                                        showPopup = ""
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 .fileImporter(
                     isPresented: $isFilePickerPresented,
                     allowedContentTypes: [.audio],
@@ -254,6 +287,9 @@ struct LibraryView: View {
                         .onDisappear {
                             looseTracks = TrackManager.shared.fetchTracks()
                         }
+                }
+                .sheet(item: $trackToAdd) { track in
+                    AddToPlaylistView(showPopup: $showPopup, track: track)
                 }
             }
         }

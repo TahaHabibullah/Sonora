@@ -37,193 +37,190 @@ struct QueueView: View {
                     .padding()
             }
             
-                if let currentIndex = playQueue.currentIndex,
-                    let currentTrack = playQueue.currentTrack {
-                    HStack {
-                        Text("Now Playing")
-                            .font(.headline)
-                            .bold()
-                        Spacer()
+            if let currentIndex = playQueue.currentIndex,
+                let currentTrack = playQueue.currentTrack {
+                HStack {
+                    Text("Now Playing")
+                        .font(.headline)
+                        .bold()
+                    Spacer()
+                }
+                .padding(.leading, 15)
+                
+                HStack {
+                    if let artwork = Utils.shared.loadImageFromDocuments(
+                        filePath: currentTrack.artwork) {
+                        Image(uiImage: artwork)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 50, height: 50)
+                            .padding()
                     }
-                    .padding(.leading, 15)
+                    else {
+                        Image(systemName: "music.note.list")
+                            .font(.subheadline)
+                            .frame(width: 50, height: 50)
+                            .background(Color.gray.opacity(0.5))
+                            .padding()
+                    }
                     
-                    HStack {
-                        if let artwork = Utils.shared.loadImageFromDocuments(
-                            filePath: currentTrack.artwork) {
-                            Image(uiImage: artwork)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 50, height: 50)
-                                .padding()
-                        }
-                        else {
-                            Image(systemName: "music.note.list")
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text(currentTrack.title)
                                 .font(.subheadline)
-                                .frame(width: 50, height: 50)
-                                .background(Color.gray.opacity(0.5))
-                                .padding()
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            Spacer()
                         }
-                        
-                        VStack(spacing: 0) {
-                            HStack {
-                                Text(currentTrack.title)
-                                    .font(.subheadline)
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
-                                Spacer()
-                            }
-                            HStack {
-                                Text(currentTrack.artist)
-                                    .font(.subheadline)
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
-                                    .foregroundColor(.gray)
-                                Spacer()
-                            }
+                        HStack {
+                            Text(currentTrack.artist)
+                                .font(.subheadline)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .foregroundColor(.gray)
+                            Spacer()
                         }
                     }
-                    .padding(.bottom, 10)
-                    
-                    List {
-                        if !playQueue.trackQueue.isEmpty {
-                            Section {
-                                ForEach(Array(playQueue.trackQueue.enumerated()), id: \.element) { index, element in
-                                    Button(action: {
-                                        playQueue.skipQueueToTrack(index)
-                                    }) {
-                                        HStack {
-                                            VStack(spacing: 0) {
-                                                HStack {
-                                                    Text(element.title)
-                                                        .font(.subheadline)
-                                                        .lineLimit(1)
-                                                        .truncationMode(.tail)
-                                                    Spacer()
-                                                }
-                                                HStack {
-                                                    Text(element.artist)
-                                                        .font(.subheadline)
-                                                        .lineLimit(1)
-                                                        .truncationMode(.tail)
-                                                        .foregroundColor(.gray)
-                                                    Spacer()
-                                                }
-                                            }
-                                            
-                                            Spacer()
-                                            Image(systemName: "line.3.horizontal")
-                                                .foregroundColor(.gray)
-                                        }
-                                    }
-                                    .listRowBackground(Color.black)
-                                    .padding(.horizontal, 0)
-                                    .padding(.vertical, 10)
-                                }
-                                .onDelete(perform: deleteQueueTrack)
-                                .onMove(perform: moveQueueTrack)
-                                
-                            } header: {
-                                HStack {
-                                    Text("Next In Queue:")
-                                        .foregroundColor(.white)
-                                        .font(.headline)
-                                        .bold()
-                                    Spacer()
-                                }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                                .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
-                                .padding(.vertical, 10)
-                                .padding(.horizontal, 15)
-                                .background(Color.black)
-                            }
-                        }
-                        
+                }
+                .padding(.bottom, 10)
+                
+                List {
+                    if !playQueue.trackQueue.isEmpty {
                         Section {
-                            if !playQueue.tracks.isEmpty {
-                                ForEach(Array(playQueue.tracks[(currentIndex+1)...].enumerated()), id: \.element) { index, element in
-                                    Button(action: {
-                                        playQueue.skipToTrack(currentIndex+1 + index)
-                                    }) {
-                                        HStack {
-                                            VStack(spacing: 0) {
-                                                HStack {
-                                                    Text(playQueue.titles[currentIndex+1 + index])
-                                                        .font(.subheadline)
-                                                        .lineLimit(1)
-                                                        .truncationMode(.tail)
-                                                    Spacer()
-                                                }
-                                                HStack {
-                                                    Text(playQueue.artists[currentIndex+1 + index])
-                                                        .font(.subheadline)
-                                                        .lineLimit(1)
-                                                        .truncationMode(.tail)
-                                                        .foregroundColor(.gray)
-                                                    Spacer()
-                                                }
+                            ForEach(Array(playQueue.trackQueue.enumerated()), id: \.element) { index, element in
+                                Button(action: {
+                                    playQueue.skipQueueToTrack(index)
+                                }) {
+                                    HStack {
+                                        VStack(spacing: 0) {
+                                            HStack {
+                                                Text(element.title)
+                                                    .font(.subheadline)
+                                                    .lineLimit(1)
+                                                    .truncationMode(.tail)
+                                                Spacer()
                                             }
-                                            
-                                            Spacer()
-                                            Image(systemName: "line.3.horizontal")
-                                                .foregroundColor(.gray)
+                                            HStack {
+                                                Text(element.artist)
+                                                    .font(.subheadline)
+                                                    .lineLimit(1)
+                                                    .truncationMode(.tail)
+                                                    .foregroundColor(.gray)
+                                                Spacer()
+                                            }
                                         }
-                                    }
-                                    .listRowBackground(Color.black)
-                                    .padding(.horizontal, 0)
-                                    .padding(.vertical, 10)
-                                }
-                                .onDelete(perform: deleteTrack)
-                                .onMove(perform: moveTrack)
-                            }
-                        } header: {
-                            if !playQueue.tracks.isEmpty {
-                                HStack {
-                                    Text("Next From \(playQueue.originalName):")
-                                        .foregroundColor(.white)
-                                        .font(.headline)
-                                        .bold()
-                                    Spacer()
-                                    if playQueue.isShuffled {
-                                        Button(action: {
-                                            playQueue.unshuffleTracks()
-                                        }) {
-                                            Image(systemName: "shuffle")
-                                                .resizable()
-                                                .scaledToFit()
-                                                .frame(width: 20, height: 20)
-                                                .foregroundColor(.blue)
-                                        }
-                                        .disabled(playQueue.currentIndex == nil)
-                                    }
-                                    else {
-                                        Button(action: {
-                                            playQueue.shuffleTracks()
-                                        }) {
-                                            Image(systemName: "shuffle")
-                                                .resizable()
-                                                .scaledToFit()
-                                                .frame(width: 20, height: 20)
-                                                .foregroundColor(.gray)
-                                        }
-                                        .disabled(playQueue.tracks.isEmpty)
+                                        
+                                        Spacer()
+                                        Image(systemName: "line.3.horizontal")
+                                            .foregroundColor(.gray)
                                     }
                                 }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                                .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
+                                .listRowBackground(Color.black)
+                                .padding(.horizontal, 0)
                                 .padding(.vertical, 10)
-                                .padding(.horizontal, 15)
-                                .background(Color.black)
                             }
+                            .onDelete(perform: deleteQueueTrack)
+                            .onMove(perform: moveQueueTrack)
+                            
+                        } header: {
+                            HStack {
+                                Text("Next In Queue:")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                    .bold()
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                            .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 15)
+                            .background(Color.black)
                         }
                     }
-                    .padding(.top, -25)
-                    .listStyle(PlainListStyle())
+                    
+                    if !playQueue.tracks.isEmpty {
+                        Section {
+                            ForEach(Array(playQueue.tracks[(currentIndex+1)...].enumerated()), id: \.element) { index, element in
+                                Button(action: {
+                                    playQueue.skipToTrack(currentIndex+1 + index)
+                                }) {
+                                    HStack {
+                                        VStack(spacing: 0) {
+                                            HStack {
+                                                Text(playQueue.titles[currentIndex+1 + index])
+                                                    .font(.subheadline)
+                                                    .lineLimit(1)
+                                                    .truncationMode(.tail)
+                                                Spacer()
+                                            }
+                                            HStack {
+                                                Text(playQueue.artists[currentIndex+1 + index])
+                                                    .font(.subheadline)
+                                                    .lineLimit(1)
+                                                    .truncationMode(.tail)
+                                                    .foregroundColor(.gray)
+                                                Spacer()
+                                            }
+                                        }
+                                        
+                                        Spacer()
+                                        Image(systemName: "line.3.horizontal")
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+                                .listRowBackground(Color.black)
+                                .padding(.horizontal, 0)
+                                .padding(.vertical, 10)
+                            }
+                            .onDelete(perform: deleteTrack)
+                            .onMove(perform: moveTrack)
+                            
+                        } header: {
+                            HStack {
+                                Text("Next From \(playQueue.originalName):")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                    .bold()
+                                Spacer()
+                                if playQueue.isShuffled {
+                                    Button(action: {
+                                        playQueue.unshuffleTracks()
+                                    }) {
+                                        Image(systemName: "shuffle")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 20, height: 20)
+                                            .foregroundColor(.blue)
+                                    }
+                                    .disabled(playQueue.currentIndex == nil)
+                                }
+                                else {
+                                    Button(action: {
+                                        playQueue.shuffleTracks()
+                                    }) {
+                                        Image(systemName: "shuffle")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 20, height: 20)
+                                            .foregroundColor(.gray)
+                                    }
+                                    .disabled(playQueue.tracks.isEmpty)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                            .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 15)
+                            .background(Color.black)
+                        }
+                    }
+                }
+                .padding(.top, -25)
+                .listStyle(PlainListStyle())
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.top, 20)
         .background(.black)
-        .edgesIgnoringSafeArea(.all)
     }
     
     private func deleteQueueTrack(at offsets: IndexSet) {
