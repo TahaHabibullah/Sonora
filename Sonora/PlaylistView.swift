@@ -27,7 +27,7 @@ struct PlaylistView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 0) {
+            LazyVStack(spacing: 0) {
                 if let artwork = playlist.artwork {
                     Image(uiImage: UIImage(data: artwork)!)
                         .resizable()
@@ -128,94 +128,88 @@ struct PlaylistView: View {
                         .padding()
                     }
                 }
-                
-                List {
-                    ForEach(Array(playlist.tracklist.enumerated()), id: \.element) { index, element in
-                        Button(action: {
-                            playQueue.startPlaylistQueue(from: element, in: playlist.tracklist, playlistName: playlist.name)
-                            playlist.lastPlayed = Date.now
-                        }) {
-                            HStack {
-                                if !preloadedImages.isEmpty {
-                                    if let artworkPath = element.artwork {
-                                        if let artwork = preloadedImages[artworkPath]! {
-                                            Image(uiImage: artwork)
-                                                .resizable()
-                                                .scaledToFit()
-                                                .frame(width: 50, height: 50)
-                                        }
+                    
+                ForEach(playlist.tracklist, id: \.self) { track in
+                    Button(action: {
+                        playQueue.startPlaylistQueue(from: track, in: playlist.tracklist, playlistName: playlist.name)
+                        playlist.lastPlayed = Date.now
+                    }) {
+                        HStack {
+                            if !preloadedImages.isEmpty {
+                                if let artworkPath = track.artwork {
+                                    if let artwork = preloadedImages[artworkPath]! {
+                                        Image(uiImage: artwork)
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 50, height: 50)
                                     }
-                                }
-                                else {
-                                    Image(systemName: "music.note.list")
-                                        .font(.subheadline)
-                                        .frame(width: 50, height: 50)
-                                        .background(Color.gray.opacity(0.5))
-                                }
-                                VStack(spacing: 0) {
-                                    HStack {
-                                        Text(element.title)
-                                            .font(.subheadline)
-                                            .lineLimit(1)
-                                            .truncationMode(.tail)
-                                        Spacer()
-                                    }
-                                    HStack {
-                                        Text(element.artist)
-                                            .foregroundColor(.gray)
-                                            .font(.caption)
-                                            .lineLimit(1)
-                                            .truncationMode(.tail)
-                                        Spacer()
-                                    }
-                                }
-                                Spacer()
-                                Text(element.duration)
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                                
-                                Menu {
-                                    Button(action: {
-                                        trackToAdd = element
-                                    }) {
-                                        Label("Add To Playlist", systemImage: "plus.square")
-                                    }
-                                    Button(action: {
-                                        playQueue.addToQueue(element)
-                                        withAnimation(.linear(duration: 0.25)) {
-                                            showPopup = "Added to queue"
-                                        }
-                                    }) {
-                                        Label("Add To Queue", systemImage: "text.badge.plus")
-                                    }
-                                    Button(action: {
-                                        trackToEdit = element
-                                    }) {
-                                        Label("Edit Track Details", systemImage: "pencil")
-                                    }
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "ellipsis")
-                                            .foregroundColor(.gray)
-                                    }
-                                    .padding(.leading, 10)
-                                    .frame(width: 25, height: 25)
-                                    .contentShape(Rectangle())
                                 }
                             }
+                            else {
+                                Image(systemName: "music.note.list")
+                                    .font(.subheadline)
+                                    .frame(width: 50, height: 50)
+                                    .background(Color.gray.opacity(0.5))
+                            }
+                            VStack(spacing: 0) {
+                                HStack {
+                                    Text(track.title)
+                                        .font(.subheadline)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                    Spacer()
+                                }
+                                HStack {
+                                    Text(track.artist)
+                                        .foregroundColor(.gray)
+                                        .font(.caption)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                    Spacer()
+                                }
+                            }
+                            Spacer()
+                            Text(track.duration)
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            
+                            Menu {
+                                Button(action: {
+                                    trackToAdd = track
+                                }) {
+                                    Label("Add To Playlist", systemImage: "plus.square")
+                                }
+                                Button(action: {
+                                    playQueue.addToQueue(track)
+                                    withAnimation(.linear(duration: 0.25)) {
+                                        showPopup = "Added to queue"
+                                    }
+                                }) {
+                                    Label("Add To Queue", systemImage: "text.badge.plus")
+                                }
+                                Button(action: {
+                                    trackToEdit = track
+                                }) {
+                                    Label("Edit Track Details", systemImage: "pencil")
+                                }
+                            } label: {
+                                HStack {
+                                    Image(systemName: "ellipsis")
+                                        .foregroundColor(.gray)
+                                }
+                                .padding(.leading, 10)
+                                .frame(width: 25, height: 25)
+                                .contentShape(Rectangle())
+                            }
+                            .simultaneousGesture(TapGesture().onEnded { })
                         }
-                        .listRowBackground(Color.black)
-                        .frame(height: 40)
                     }
-                    .onDelete(perform: editMode.isEditing ? deleteTrack : nil)
-                    .onMove(perform: editMode.isEditing ? moveTrack : nil)
+                    .frame(height: 65)
+                    .padding(.horizontal, 15)
+                    .foregroundColor(.white)
                 }
-                .id(editMode.isEditing)
-                .frame(height: CGFloat(120 + playlist.tracklist.count * 62))
-                .listStyle(PlainListStyle())
-                .scrollDisabled(true)
-                .environment(\.editMode, $editMode)
             }
+            .padding(.bottom, 60)
         }
         .onAppear {
             for track in playlist.tracklist {

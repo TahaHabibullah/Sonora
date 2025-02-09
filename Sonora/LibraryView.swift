@@ -104,7 +104,6 @@ struct LibraryView: View {
                     else if selectedTab == 1 {
                         ScrollView {
                             LazyVStack {
-                                List {
                                     ForEach(looseTracks) { track in
                                         Button(action: {
                                             playQueue.startPlaylistQueue(from: track, in: looseTracks)
@@ -181,15 +180,13 @@ struct LibraryView: View {
                                                     .frame(width: 25, height: 25)
                                                     .contentShape(Rectangle())
                                                 }
+                                                .simultaneousGesture(TapGesture().onEnded { })
                                             }
-                                            .frame(height: 40)
+                                            .frame(height: 65)
+                                            .padding(.horizontal, 15)
+                                            .foregroundColor(.white)
                                         }
                                     }
-                                }
-                                .frame(maxWidth: .infinity)
-                                .frame(height: CGFloat(looseTracks.count * 70))
-                                .scrollDisabled(true)
-                                .listStyle(PlainListStyle())
                             }
                         }
                         .padding(.bottom, 50)
