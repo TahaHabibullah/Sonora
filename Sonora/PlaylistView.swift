@@ -13,17 +13,18 @@ struct PlaylistView: View {
     @EnvironmentObject var playQueue: PlayQueue
     @State private var isTrackPickerPresented = false
     @State private var isImagePickerPresented = false
+    @State private var isEditTracklistPresented = false
     @State private var showDeleteConfirmation = false
     @State private var showPopup: String = ""
     @State private var trackToEdit: Track? = nil
     @State private var trackToAdd: Track? = nil
     @State private var tracksToAdd: [Track] = []
-    @State private var editMode: EditMode = .inactive
     @State private var isEditingName = false
     @State private var newArtwork: UIImage? = nil
     @State private var preloadedImages: [String?: UIImage?] = [:]
     @State var playlist: Playlist
     @FocusState private var nameFieldFocused: Bool
+    let haptics = UIImpactFeedbackGenerator(style: .light)
     
     var body: some View {
         ScrollView {
@@ -84,6 +85,7 @@ struct PlaylistView: View {
                     let tracklist = playlist.tracklist
                     HStack(spacing: 0) {
                         Button(action: {
+                            haptics.impactOccurred()
                             playQueue.startPlaylistQueueUnshuffled(from: tracklist, playlistName: playlist.name)
                             playlist.lastPlayed = Date.now
                         }) {
@@ -106,6 +108,7 @@ struct PlaylistView: View {
                         .padding()
                         
                         Button(action: {
+                            haptics.impactOccurred()
                             playQueue.startPlaylistQueueShuffled(from: tracklist, playlistName: playlist.name)
                             playlist.lastPlayed = Date.now
                         }) {
@@ -142,7 +145,22 @@ struct PlaylistView: View {
                                             .resizable()
                                             .scaledToFit()
                                             .frame(width: 50, height: 50)
+                                            .padding(.leading, 15)
                                     }
+                                    else {
+                                        Image(systemName: "music.note.list")
+                                            .font(.subheadline)
+                                            .frame(width: 50, height: 50)
+                                            .background(Color.gray.opacity(0.5))
+                                            .padding(.leading, 15)
+                                    }
+                                }
+                                else {
+                                    Image(systemName: "music.note.list")
+                                        .font(.subheadline)
+                                        .frame(width: 50, height: 50)
+                                        .background(Color.gray.opacity(0.5))
+                                        .padding(.leading, 15)
                                 }
                             }
                             else {
@@ -150,6 +168,7 @@ struct PlaylistView: View {
                                     .font(.subheadline)
                                     .frame(width: 50, height: 50)
                                     .background(Color.gray.opacity(0.5))
+                                    .padding(.leading, 15)
                             }
                             VStack(spacing: 0) {
                                 HStack {
@@ -197,15 +216,16 @@ struct PlaylistView: View {
                                     Image(systemName: "ellipsis")
                                         .foregroundColor(.gray)
                                 }
-                                .padding(.leading, 10)
-                                .frame(width: 25, height: 25)
-                                .contentShape(Rectangle())
+                                .frame(width: 35, height: 50)
+                                .padding(.trailing, 15)
                             }
-                            .simultaneousGesture(TapGesture().onEnded { })
+                            .contentShape(Rectangle())
+                            .simultaneousGesture(TapGesture().onEnded {
+                                haptics.impactOccurred()
+                            })
                         }
                     }
                     .frame(height: 65)
-                    .padding(.horizontal, 15)
                     .foregroundColor(.white)
                 }
             }
@@ -219,12 +239,9 @@ struct PlaylistView: View {
         }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                if editMode.isEditing || isEditingName {
+                if isEditingName {
                     Button(action: {
-                        if editMode.isEditing {
-                            confirmChanges()
-                        }
-                        else if isEditingName {
+                        if isEditingName {
                             confirmNameChanges()
                         }
                     }) {
@@ -250,9 +267,9 @@ struct PlaylistView: View {
                             Label("Edit Name", systemImage: "pencil")
                         }
                         Button(action: {
-                            editMode = .active
+                            isEditTracklistPresented = true
                         }) {
-                            Label("Edit Tracks", systemImage: "pencil")
+                            Label("Edit Tracklist", systemImage: "pencil")
                         }
                         Button(role: .destructive, action: {
                             showDeleteConfirmation = true
@@ -266,6 +283,9 @@ struct PlaylistView: View {
                         }
                         .foregroundColor(.blue)
                     }
+                    .simultaneousGesture(TapGesture().onEnded {
+                        haptics.impactOccurred()
+                    })
                     .confirmationDialog("Are you sure you want to delete this album?",
                                         isPresented: $showDeleteConfirmation,
                                         titleVisibility: .visible) {
@@ -297,6 +317,8 @@ struct PlaylistView: View {
                     .padding(.bottom, 60)
                     .transition(.opacity)
                     .onAppear {
+                        let haptics = UINotificationFeedbackGenerator()
+                        haptics.notificationOccurred(.success)
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                             withAnimation(.easeOut(duration: 0.5)) {
                                 showPopup = ""
@@ -328,6 +350,12 @@ struct PlaylistView: View {
                     PlaylistManager.shared.replacePlaylist(playlist)
                 }
         }
+        .sheet(isPresented: $isEditTracklistPresented) {
+            EditTracklistView(isPresented: $isEditTracklistPresented, playlist: playlist, preloadedImages: preloadedImages)
+                .onDisappear {
+                    playlist = PlaylistManager.shared.fetchPlaylist(playlist.id)
+                }
+        }
         .sheet(item: $trackToEdit) { track in
             if let index = playlist.tracklist.firstIndex(where: { $0.id == track.id }) {
                 EditTrackView(playlist: playlist, track: track, trackIndex: index)
@@ -342,19 +370,6 @@ struct PlaylistView: View {
         .sheet(item: $trackToAdd) { track in
             AddToPlaylistView(showPopup: $showPopup, track: track)
         }
-    }
-    
-    private func deleteTrack(at offsets: IndexSet) {
-        playlist.tracklist.remove(atOffsets: offsets)
-    }
-    
-    private func moveTrack(from source: IndexSet, to destination: Int) {
-        playlist.tracklist.move(fromOffsets: source, toOffset: destination)
-    }
-    
-    private func confirmChanges() {
-        PlaylistManager.shared.replacePlaylist(playlist)
-        editMode = .inactive
     }
     
     private func confirmNameChanges() {

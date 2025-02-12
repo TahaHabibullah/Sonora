@@ -33,17 +33,17 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         super.init()
         setupRemoteTransportControls()
         observeAudioInterruptions()
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Error configuring audio session: \(error.localizedDescription)")
+        }
     }
     
     func startQueue(from track: Int, in album: Album) {
         currentIndex = track
         if currentIndex != nil {
-            do {
-                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
-                try AVAudioSession.sharedInstance().setActive(true)
-            } catch {
-                print("Error configuring audio session: \(error.localizedDescription)")
-            }
             name = album.name
             tracks = album.tracks
             titles = album.titles
@@ -63,12 +63,6 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     
     func startShuffledQueue(from album: Album) {
         currentIndex = 0
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
-            print("Error configuring audio session: \(error.localizedDescription)")
-        }
         name = album.name
         let shuffledIndices = album.tracks.indices.shuffled()
         originalName = album.name
@@ -99,13 +93,6 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         originalArtists = trackList.map { $0.artist }
         originalArtworks = trackList.map { $0.artwork }
         currentIndex = 0
-        
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
-            print("Error configuring audio session: \(error.localizedDescription)")
-        }
         
         let tracksQueue = trackListCopy.map { $0.path }
         let artistsQueue = trackListCopy.map { $0.artist }
@@ -146,13 +133,6 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         originalArtworks = artworksQueue
         currentIndex = 0
         
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
-            print("Error configuring audio session: \(error.localizedDescription)")
-        }
-        
         if playlistName.isEmpty {
             name = "Untitled Playlist"
         }
@@ -180,13 +160,6 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         originalArtists = artistsQueue
         originalArtworks = artworksQueue
         currentIndex = 0
-        
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
-            print("Error configuring audio session: \(error.localizedDescription)")
-        }
         
         let shuffledIndices = tracksQueue.indices.shuffled()
         if playlistName.isEmpty {
@@ -259,12 +232,6 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     func addToQueue(_ track: Track) {
         trackQueue.append(track)
         if currentIndex == nil {
-            do {
-                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
-                try AVAudioSession.sharedInstance().setActive(true)
-            } catch {
-                print("Error configuring audio session: \(error.localizedDescription)")
-            }
             isShuffled = false
             currentIndex = 0
             name = "Queue"

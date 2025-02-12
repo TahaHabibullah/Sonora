@@ -26,6 +26,7 @@ struct AlbumView: View {
     @FocusState private var nameFieldFocused: Bool
     @FocusState private var artistFieldFocused: Bool
     @FocusState private var trackFieldFocused: Bool
+    let haptics = UIImpactFeedbackGenerator(style: .light)
     
     var body: some View {
         ScrollView {
@@ -115,6 +116,7 @@ struct AlbumView: View {
                 if !album.tracks.isEmpty {
                     HStack(spacing: 0) {
                         Button(action: {
+                            haptics.impactOccurred()
                             playQueue.startQueue(from: 0, in: album)
                         }) {
                             HStack {
@@ -136,6 +138,7 @@ struct AlbumView: View {
                         .padding()
                         
                         Button(action: {
+                            haptics.impactOccurred()
                             playQueue.startShuffledQueue(from: album)
                         }) {
                             HStack {
@@ -189,7 +192,7 @@ struct AlbumView: View {
                                         editingTrackIndex = nil
                                     }) {
                                         Image(systemName: "checkmark")
-                                            .padding(.leading, 10)
+                                            .frame(width: 35, height: 50)
                                             .foregroundColor(.blue)
                                     }
                                 }
@@ -221,10 +224,12 @@ struct AlbumView: View {
                                             Image(systemName: "ellipsis")
                                                 .foregroundColor(.gray)
                                         }
-                                        .padding(.leading, 10)
-                                        .frame(width: 25, height: 25)
-                                        .contentShape(Rectangle())
+                                        .frame(width: 35, height: 50)
                                     }
+                                    .contentShape(Rectangle())
+                                    .simultaneousGesture(TapGesture().onEnded {
+                                        haptics.impactOccurred()
+                                    })
                                 }
                             }
                             .frame(height: 40)
@@ -296,6 +301,9 @@ struct AlbumView: View {
                             }
                             .foregroundColor(.blue)
                         }
+                        .simultaneousGesture(TapGesture().onEnded {
+                            haptics.impactOccurred()
+                        })
                         .confirmationDialog("Are you sure you want to delete this playlist?",
                                             isPresented: $showDeleteConfirmation,
                                             titleVisibility: .visible) {
@@ -347,6 +355,8 @@ struct AlbumView: View {
                     .padding(.bottom, 60)
                     .transition(.opacity)
                     .onAppear {
+                        let haptics = UINotificationFeedbackGenerator()
+                        haptics.notificationOccurred(.success)
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                             withAnimation(.easeOut(duration: 0.5)) {
                                 showPopup = ""

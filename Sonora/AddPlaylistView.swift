@@ -10,6 +10,7 @@ import AVFoundation
 
 struct AddPlaylistView: View {
     @Binding var isPresented: Bool
+    @Binding var showPopup: String
     @State private var artwork: UIImage? = nil
     @State private var playlistName: String = ""
     @State private var isImagePickerPresented = false
@@ -137,6 +138,7 @@ struct AddPlaylistView: View {
                         let resizedArtwork = Utils.shared.resizeImage(image: artwork)
                         let playlist = Playlist(name: playlistName, artwork: resizedArtwork, tracklist: selectedTracks)
                         PlaylistManager.shared.savePlaylist(playlist)
+                        showPopup = "Created playlist"
                         isPresented = false
                     }
                     .foregroundColor(.blue)

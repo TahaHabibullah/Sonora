@@ -10,6 +10,7 @@ import SwiftUI
 struct PlaylistsView: View {
     @State private var isAddPlaylistPresented: Bool = false
     @State private var playlists: [Playlist] = []
+    @State private var showPopup: String = ""
     
     var body: some View {
         VStack {
@@ -60,6 +61,33 @@ struct PlaylistsView: View {
                     }
                     .listStyle(PlainListStyle())
                 }
+                .overlay {
+                    if !showPopup.isEmpty {
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Image(systemName: "checkmark.circle")
+                                    .font(.subheadline)
+                                Text(showPopup)
+                                    .font(.subheadline)
+                            }
+                            .padding(8)
+                            .background(Color.gray.opacity(0.5))
+                            .cornerRadius(10)
+                            .padding(.bottom, 60)
+                            .transition(.opacity)
+                            .onAppear {
+                                let haptics = UINotificationFeedbackGenerator()
+                                haptics.notificationOccurred(.success)
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    withAnimation(.easeOut(duration: 0.5)) {
+                                        showPopup = ""
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 .onAppear {
                     playlists = PlaylistManager.shared.fetchPlaylists()
                 }
@@ -67,6 +95,8 @@ struct PlaylistsView: View {
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: {
+                            let haptics = UIImpactFeedbackGenerator(style: .light)
+                            haptics.impactOccurred()
                             isAddPlaylistPresented = true
                         }) {
                             HStack {
@@ -78,7 +108,7 @@ struct PlaylistsView: View {
                     }
                 }
                 .sheet(isPresented: $isAddPlaylistPresented) {
-                    AddPlaylistView(isPresented: $isAddPlaylistPresented)
+                    AddPlaylistView(isPresented: $isAddPlaylistPresented, showPopup: $showPopup)
                         .onDisappear {
                             playlists = PlaylistManager.shared.fetchPlaylists()
                         }

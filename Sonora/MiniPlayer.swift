@@ -10,6 +10,7 @@ import SwiftUI
 struct MiniPlayer: View {
     @EnvironmentObject var playQueue: PlayQueue
     @State private var isPlayerViewPresented = false
+    let haptics = UIImpactFeedbackGenerator(style: .light)
 
     var body: some View {
         HStack {
@@ -44,26 +45,38 @@ struct MiniPlayer: View {
                     .font(.headline)
             }
             Spacer()
-            Button(action: playQueue.prevTrack) {
+            Button(action: {
+                haptics.impactOccurred()
+                playQueue.prevTrack()
+            }) {
                 Image(systemName: "backward.fill")
                     .font(.headline)
             }
             .padding(.trailing, 10)
             if playQueue.isPlaying {
-                Button(action: playQueue.pausePlayback) {
+                Button(action: {
+                    haptics.impactOccurred()
+                    playQueue.pausePlayback()
+                }) {
                     Image(systemName: "pause.fill")
                         .font(.title3)
                 }
                 .padding(.trailing, 10)
             }
             else {
-                Button(action: playQueue.resumePlayback) {
+                Button(action: {
+                    haptics.impactOccurred()
+                    playQueue.resumePlayback()
+                }) {
                     Image(systemName: "play.fill")
                         .font(.title3)
                 }
                 .padding(.trailing, 10)
             }
-            Button(action: playQueue.skipTrack) {
+            Button(action: {
+                haptics.impactOccurred()
+                playQueue.skipTrack()
+            }) {
                 Image(systemName: "forward.fill")
                     .font(.headline)
             }

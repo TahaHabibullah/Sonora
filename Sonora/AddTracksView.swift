@@ -10,6 +10,7 @@ import AVFoundation
 
 struct AddTracksView: View {
     @Binding var isPresented: Bool
+    @Binding var showPopup: String
     @State var selectedFiles: [URL]
     @State private var isFilePickerPresented = false
     @State private var isImagePickerPresented = false
@@ -19,6 +20,17 @@ struct AddTracksView: View {
             GeometryReader { _ in
                 VStack {
                     List {
+                        Button(action: {
+                            isFilePickerPresented = true
+                        }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("Add Tracks")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                            }
+                        }
                         ForEach(Array(selectedFiles.enumerated()), id: \.element) { index, element in
                             HStack {
                                 Text(element.deletingPathExtension().lastPathComponent)
@@ -34,22 +46,6 @@ struct AddTracksView: View {
                         .onDelete(perform: deleteFile)
                     }
                     .listStyle(PlainListStyle())
-                    
-                    Spacer()
-                    Button(action: {
-                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                        isFilePickerPresented = true
-                    }) {
-                        HStack {
-                            Image(systemName: "square.and.arrow.down")
-                            Text("Import Files")
-                        }
-                        .padding()
-                        .foregroundColor(.white)
-                        .background(.blue)
-                        .cornerRadius(8)
-                    }
-                    .padding()
                 }
                 .padding(.top, 5)
                 .navigationTitle("\(selectedFiles.count) Files Selected")
@@ -67,6 +63,7 @@ struct AddTracksView: View {
                                 TrackManager.shared.saveTrack(track)
                             }
                         }
+                        showPopup = "Imported \(selectedFiles.count) track(s)"
                         isPresented = false
                     }
                     .foregroundColor(.blue)

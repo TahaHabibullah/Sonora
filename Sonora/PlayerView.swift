@@ -16,6 +16,8 @@ struct PlayerView: View {
     @State private var sliderValue: Double = 0.0
     @State private var timer: Timer?
     @State private var isEditing: Bool = false
+    let selectionHaptics = UISelectionFeedbackGenerator()
+    let impactHaptics = UIImpactFeedbackGenerator(style: .light)
     
     var body: some View {
         let screenHeight = UIScreen.main.bounds.height
@@ -123,6 +125,7 @@ struct PlayerView: View {
                     HStack {
                         if playQueue.isShuffled {
                             Button(action: {
+                                selectionHaptics.selectionChanged()
                                 playQueue.unshuffleTracks()
                             }) {
                                 Image(systemName: "shuffle")
@@ -135,6 +138,7 @@ struct PlayerView: View {
                         }
                         else {
                             Button(action: {
+                                selectionHaptics.selectionChanged()
                                 playQueue.shuffleTracks()
                             }) {
                                 Image(systemName: "shuffle")
@@ -146,7 +150,10 @@ struct PlayerView: View {
                             }
                             .disabled(playQueue.currentIndex == nil)
                         }
-                        Button(action: playQueue.prevTrack) {
+                        Button(action: {
+                            impactHaptics.impactOccurred()
+                            playQueue.prevTrack()
+                        }) {
                             Image(systemName: "backward.fill")
                                 .resizable()
                                 .scaledToFit()
@@ -155,7 +162,10 @@ struct PlayerView: View {
                                 .padding()
                         }
                         if playQueue.isPlaying {
-                            Button(action: playQueue.pausePlayback) {
+                            Button(action: {
+                                impactHaptics.impactOccurred()
+                                playQueue.pausePlayback()
+                            }) {
                                 Image(systemName: "pause.fill")
                                     .resizable()
                                     .scaledToFit()
@@ -165,7 +175,10 @@ struct PlayerView: View {
                             }
                         }
                         else {
-                            Button(action: playQueue.resumePlayback) {
+                            Button(action: {
+                                impactHaptics.impactOccurred()
+                                playQueue.resumePlayback()
+                            }) {
                                 Image(systemName: "play.fill")
                                     .resizable()
                                     .scaledToFit()
@@ -174,7 +187,10 @@ struct PlayerView: View {
                                     .padding()
                             }
                         }
-                        Button(action: playQueue.skipTrack) {
+                        Button(action: {
+                            impactHaptics.impactOccurred()
+                            playQueue.skipTrack()
+                        }) {
                             Image(systemName: "forward.fill")
                                 .resizable()
                                 .scaledToFit()
@@ -184,6 +200,7 @@ struct PlayerView: View {
                         }
                         
                         Button(action: {
+                            impactHaptics.impactOccurred()
                             isQueuePresented = true
                         }) {
                             Image(systemName: "list.triangle")

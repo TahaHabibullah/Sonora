@@ -10,6 +10,7 @@ import AVFoundation
 
 struct AddAlbumView: View {
     @Binding var isPresented: Bool
+    @Binding var showPopup: String
     @State private var albumName: String = ""
     @State private var artist: String = ""
     @State private var albumArtwork: UIImage? = nil
@@ -148,6 +149,7 @@ struct AddAlbumView: View {
                         let artworkPath = Utils.shared.copyImageToDocuments(artwork: resizedArtwork, directory: directory)
                         let newAlbum = Album(name: albumName, artist: artist, artwork: artworkPath, tracks: filePaths, directory: directory)
                         AlbumManager.shared.saveAlbum(newAlbum)
+                        showPopup = "Created album"
                         isPresented = false
                     }
                     .foregroundColor(.blue)

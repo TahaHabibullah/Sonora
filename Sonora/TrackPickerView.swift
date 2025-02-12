@@ -26,12 +26,14 @@ struct TrackPickerView: View {
                 List {
                     ForEach(filteredTracks, id: \.self) { track in
                         Button(action: {
+                            let haptics = UISelectionFeedbackGenerator()
                             if selectedPaths.contains(track.path) {
                                 selectedPaths.remove(track.path)
                             }
                             else {
                                 selectedPaths.insert(track.path)
                             }
+                            haptics.selectionChanged()
                         }) {
                             HStack {
                                 if let artworkPath = track.artwork {
@@ -66,12 +68,20 @@ struct TrackPickerView: View {
                                     }
                                 }
                                 Spacer()
-                                Text(track.duration)
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
+                                if selectedPaths.contains(track.path) {
+                                    Image(systemName: "checkmark")
+                                        .font(.subheadline)
+                                        .bold()
+                                        .foregroundColor(.blue)
+                                }
+                                else {
+                                    Image(systemName: "checkmark")
+                                        .font(.subheadline)
+                                        .bold()
+                                        .foregroundColor(.gray)
+                                }
                             }
                         }
-                        .listRowBackground(selectedPaths.contains(track.path) ? Color.blue.opacity(0.1) : Color.clear)
                     }
                 }
                 .searchable(text: $searchText, prompt: "Search Tracks")

@@ -29,15 +29,16 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             TabView {
-                PlaylistsView()
-                    .tabItem {
-                        Image(systemName: "music.note")
-                        Text("Playlists")
-                    }
                 LibraryView()
                     .tabItem {
                         Image(systemName: "folder")
                         Text("Library")
+                    }
+                
+                PlaylistsView()
+                    .tabItem {
+                        Image(systemName: "music.note")
+                        Text("Playlists")
                     }
             }
             .accentColor(.blue)

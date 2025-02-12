@@ -12,11 +12,14 @@ import MediaPlayer
 struct QueueView: View {
     @EnvironmentObject var playQueue: PlayQueue
     @Binding var isPresented: Bool
+    let selectionHaptics = UISelectionFeedbackGenerator()
     
     var body: some View {
         VStack(spacing: 0) {
             HStack {
                 Button(action: {
+                    let haptics = UIImpactFeedbackGenerator(style: .light)
+                    haptics.impactOccurred()
                     isPresented = false
                 }) {
                     Image(systemName: "xmark")
@@ -184,6 +187,7 @@ struct QueueView: View {
                                 Spacer()
                                 if playQueue.isShuffled {
                                     Button(action: {
+                                        selectionHaptics.selectionChanged()
                                         playQueue.unshuffleTracks()
                                     }) {
                                         Image(systemName: "shuffle")
@@ -196,6 +200,7 @@ struct QueueView: View {
                                 }
                                 else {
                                     Button(action: {
+                                        selectionHaptics.selectionChanged()
                                         playQueue.shuffleTracks()
                                     }) {
                                         Image(systemName: "shuffle")
@@ -236,6 +241,8 @@ struct QueueView: View {
             if let currentIndex = playQueue.currentIndex {
                 playQueue.tracks.remove(at: index + currentIndex+1)
                 playQueue.titles.remove(at: index + currentIndex+1)
+                playQueue.artists.remove(at: index + currentIndex+1)
+                playQueue.artworks.remove(at: index + currentIndex+1)
             }
         }
     }
@@ -247,6 +254,8 @@ struct QueueView: View {
                 indexOffset.insert(index + currentIndex+1)
                 playQueue.tracks.move(fromOffsets: indexOffset, toOffset: destination + currentIndex+1)
                 playQueue.titles.move(fromOffsets: indexOffset, toOffset: destination + currentIndex+1)
+                playQueue.artists.move(fromOffsets: indexOffset, toOffset: destination + currentIndex+1)
+                playQueue.artworks.move(fromOffsets: indexOffset, toOffset: destination + currentIndex+1)
             }
         }
     }
