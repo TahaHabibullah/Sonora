@@ -15,7 +15,7 @@ struct AddPlaylistView: View {
     @State private var playlistName: String = ""
     @State private var isImagePickerPresented = false
     @State private var isTrackPickerPresented = false
-    @State private var selectedTracks: [Track] = []
+    @State var selectedTracks: [Track] = []
     
     var body: some View {
         NavigationView {

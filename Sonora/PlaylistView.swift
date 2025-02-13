@@ -140,8 +140,8 @@ struct PlaylistView: View {
                         HStack {
                             if !preloadedImages.isEmpty {
                                 if let artworkPath = track.artwork {
-                                    if let artwork = preloadedImages[artworkPath]! {
-                                        Image(uiImage: artwork)
+                                    if let artwork = preloadedImages[artworkPath] {
+                                        Image(uiImage: artwork!)
                                             .resizable()
                                             .scaledToFit()
                                             .frame(width: 50, height: 50)
@@ -217,7 +217,7 @@ struct PlaylistView: View {
                                         .foregroundColor(.gray)
                                 }
                                 .frame(width: 35, height: 50)
-                                .padding(.trailing, 15)
+                                .padding(.trailing, 5)
                             }
                             .contentShape(Rectangle())
                             .simultaneousGesture(TapGesture().onEnded {
@@ -226,6 +226,7 @@ struct PlaylistView: View {
                         }
                     }
                     .frame(height: 65)
+                    .padding(.trailing, 10)
                     .foregroundColor(.white)
                 }
             }
@@ -339,7 +340,7 @@ struct PlaylistView: View {
                 }
         }
         .sheet(isPresented: $isTrackPickerPresented) {
-            TrackPickerView(isPresented: $isTrackPickerPresented, selectedTracks: $tracksToAdd)
+            TrackPickerView(isPresented: $isTrackPickerPresented, selectedTracks: $tracksToAdd, currentTracks: playlist.tracklist)
                 .onDisappear {
                     let artworkPaths = tracksToAdd.map { $0.artwork }
                     let artworks = artworkPaths.map { Utils.shared.loadImageFromDocuments(filePath: $0) }

@@ -108,105 +108,105 @@ struct LibraryView: View {
                 else if selectedTab == 1 {
                     ScrollView {
                         LazyVStack {
-                                ForEach(looseTracks) { track in
-                                    Button(action: {
-                                        playQueue.startPlaylistQueue(from: track, in: looseTracks)
-                                    }) {
-                                        HStack {
-                                            if let artwork = Utils.shared.loadImageFromDocuments(filePath: track.artwork) {
-                                                Image(uiImage: artwork)
-                                                    .resizable()
-                                                    .scaledToFit()
-                                                    .frame(width: 50, height: 50)
-                                                    .padding(.leading, 15)
-                                                    .animation(nil)
-                                            }
-                                            else {
-                                                Image(systemName: "music.note.list")
-                                                    .font(.subheadline)
-                                                    .frame(width: 50, height: 50)
-                                                    .background(Color.gray.opacity(0.5))
-                                                    .padding(.leading, 15)
-                                                    .animation(nil)
-                                            }
-                                            VStack(spacing: 0) {
-                                                HStack {
-                                                    Text(track.title)
-                                                        .font(.subheadline)
-                                                        .lineLimit(1)
-                                                        .truncationMode(.tail)
-                                                    Spacer()
-                                                }
-                                                HStack {
-                                                    Text(track.artist)
-                                                        .foregroundColor(.gray)
-                                                        .font(.caption)
-                                                        .lineLimit(1)
-                                                        .truncationMode(.tail)
-                                                    Spacer()
-                                                }
-                                            }
-                                            Spacer()
-                                            Text(track.duration)
+                            ForEach(looseTracks) { track in
+                                Button(action: {
+                                    playQueue.startPlaylistQueue(from: track, in: looseTracks)
+                                }) {
+                                    HStack {
+                                        if let artwork = Utils.shared.loadImageFromDocuments(filePath: track.artwork) {
+                                            Image(uiImage: artwork)
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: 50, height: 50)
+                                                .padding(.leading, 15)
+                                                .animation(nil)
+                                        }
+                                        else {
+                                            Image(systemName: "music.note.list")
                                                 .font(.subheadline)
-                                                .foregroundColor(.gray)
-                                            
-                                            Menu {
-                                                Button(action: {
-                                                    trackToAdd = track
-                                                }) {
-                                                    Label("Add To Playlist", systemImage: "plus.square")
-                                                }
-                                                Button(action: {
-                                                    playQueue.addToQueue(track)
-                                                    withAnimation(.linear(duration: 0.25)) {
-                                                        showPopup = "Added to queue"
-                                                    }
-                                                }) {
-                                                    Label("Add To Queue", systemImage: "text.badge.plus")
-                                                }
-                                                Button(action: {
-                                                    trackToEdit = track
-                                                    isEditTrackPresented = true
-                                                }) {
-                                                    Label("Edit Details", systemImage: "pencil")
-                                                }
-                                                Button(role: .destructive, action: {
-                                                    trackToDelete = track
-                                                    showDeleteConfirmation = true
-                                                }) {
-                                                    Label("Delete Track", systemImage: "trash")
-                                                }
-                                            } label: {
-                                                HStack {
-                                                    Image(systemName: "ellipsis")
-                                                        .foregroundColor(.gray)
-                                                }
-                                                .frame(width: 35, height: 50)
-                                                .padding(.trailing, 15)
+                                                .frame(width: 50, height: 50)
+                                                .background(Color.gray.opacity(0.5))
+                                                .padding(.leading, 15)
+                                                .animation(nil)
+                                        }
+                                        VStack(spacing: 0) {
+                                            HStack {
+                                                Text(track.title)
+                                                    .font(.subheadline)
+                                                    .lineLimit(1)
+                                                    .truncationMode(.tail)
+                                                Spacer()
                                             }
-                                            .contentShape(Rectangle())
-                                            .simultaneousGesture(TapGesture().onEnded {
-                                                haptics.impactOccurred()
-                                            })
-                                            .confirmationDialog("Are you sure you want to delete this track?",
-                                                                isPresented: $showDeleteConfirmation,
-                                                                titleVisibility: .visible) {
-                                                Button("Delete", role: .destructive) {
-                                                    TrackManager.shared.deleteTrack(trackToDelete!)
-                                                    looseTracks = TrackManager.shared.fetchTracks()
-                                                    trackToDelete = nil
-                                                    showDeleteConfirmation = false
-                                                }
-                                                Button("Cancel", role: .cancel) {
-                                                    showDeleteConfirmation = false
-                                                }
+                                            HStack {
+                                                Text(track.artist)
+                                                    .foregroundColor(.gray)
+                                                    .font(.caption)
+                                                    .lineLimit(1)
+                                                    .truncationMode(.tail)
+                                                Spacer()
                                             }
                                         }
-                                        .frame(height: 65)
-                                        .foregroundColor(.white)
+                                        Spacer()
+                                        Text(track.duration)
+                                            .font(.subheadline)
+                                            .foregroundColor(.gray)
+                                        
+                                        Menu {
+                                            Button(action: {
+                                                trackToAdd = track
+                                            }) {
+                                                Label("Add To Playlist", systemImage: "plus.square")
+                                            }
+                                            Button(action: {
+                                                playQueue.addToQueue(track)
+                                                withAnimation(.linear(duration: 0.25)) {
+                                                    showPopup = "Added to queue"
+                                                }
+                                            }) {
+                                                Label("Add To Queue", systemImage: "text.badge.plus")
+                                            }
+                                            Button(action: {
+                                                trackToEdit = track
+                                                isEditTrackPresented = true
+                                            }) {
+                                                Label("Edit Details", systemImage: "pencil")
+                                            }
+                                            Button(role: .destructive, action: {
+                                                trackToDelete = track
+                                                showDeleteConfirmation = true
+                                            }) {
+                                                Label("Delete Track", systemImage: "trash")
+                                            }
+                                        } label: {
+                                            HStack {
+                                                Image(systemName: "ellipsis")
+                                                    .foregroundColor(.gray)
+                                            }
+                                            .frame(width: 35, height: 50)
+                                            .padding(.trailing, 15)
+                                        }
+                                        .contentShape(Rectangle())
+                                        .simultaneousGesture(TapGesture().onEnded {
+                                            haptics.impactOccurred()
+                                        })
+                                        .confirmationDialog("Are you sure you want to delete this track?",
+                                                            isPresented: $showDeleteConfirmation,
+                                                            titleVisibility: .visible) {
+                                            Button("Delete", role: .destructive) {
+                                                TrackManager.shared.deleteTrack(trackToDelete!)
+                                                looseTracks = TrackManager.shared.fetchTracks()
+                                                trackToDelete = nil
+                                                showDeleteConfirmation = false
+                                            }
+                                            Button("Cancel", role: .cancel) {
+                                                showDeleteConfirmation = false
+                                            }
+                                        }
                                     }
+                                    .frame(height: 65)
+                                    .foregroundColor(.white)
                                 }
+                            }
                         }
                     }
                     .padding(.bottom, 50)

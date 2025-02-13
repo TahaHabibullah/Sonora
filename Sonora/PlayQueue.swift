@@ -178,9 +178,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
     
     func shuffleTracks() {
-        if currentIndex == nil {
-            return
-        }
+        guard currentIndex != nil else { return }
         
         var trackQueue = tracks
         var titlesQueue = titles
@@ -216,9 +214,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
     
     func unshuffleTracks() {
-        if currentIndex == nil {
-            return
-        }
+        guard currentIndex != nil else { return }
         
         let currentTrack = tracks[currentIndex!]
         currentIndex = originalTracks.firstIndex(where: { $0 == currentTrack })!
@@ -231,17 +227,22 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     
     func addToQueue(_ track: Track) {
         trackQueue.append(track)
-        if currentIndex == nil {
+        guard currentIndex != nil else {
             isShuffled = false
             currentIndex = 0
             name = "Queue"
             playNextQueueTrack()
             startPlaybackUpdates()
+            return
         }
     }
 
     func playNextTrack() {
-        if currentIndex == nil || currentIndex! >= tracks.count-1 {
+        guard currentIndex != nil else {
+            stopPlayback()
+            return
+        }
+        guard currentIndex! < tracks.count-1 else {
             stopPlayback()
             return
         }

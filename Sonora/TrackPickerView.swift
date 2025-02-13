@@ -10,6 +10,7 @@ import SwiftUI
 struct TrackPickerView: View {
     @Binding var isPresented: Bool
     @Binding var selectedTracks: [Track]
+    @State var currentTracks: [Track] = []
     @State private var selectedPaths = Set<String>()
     @State private var allTracks: [Track] = []
     @State private var searchText = ""
@@ -37,11 +38,17 @@ struct TrackPickerView: View {
                         }) {
                             HStack {
                                 if let artworkPath = track.artwork {
-                                    if let artwork = preloadedImages[artworkPath]! {
-                                        Image(uiImage: artwork)
+                                    if let artwork = preloadedImages[artworkPath] {
+                                        Image(uiImage: artwork!)
                                             .resizable()
                                             .scaledToFit()
                                             .frame(width: 50, height: 50)
+                                    }
+                                    else {
+                                        Image(systemName: "music.note.list")
+                                            .font(.subheadline)
+                                            .frame(width: 50, height: 50)
+                                            .background(Color.gray.opacity(0.5))
                                     }
                                 }
                                 else {
@@ -101,20 +108,46 @@ struct TrackPickerView: View {
                 .foregroundColor(.blue)
             )
             .onAppear {
+                let currentPaths = Set(currentTracks.map { $0.path })
                 let looseTracks = TrackManager.shared.fetchTracks()
-                allTracks.append(contentsOf: looseTracks)
+                if !currentPaths.isEmpty {
+                    for track in looseTracks {
+                        if !currentPaths.contains(track.path) {
+                            allTracks.append(track)
+                            let artwork = Utils.shared.loadImageFromDocuments(filePath: track.artwork)
+                            preloadedImages[track.artwork] = Utils.shared.resizeImageSmall(image: artwork)
+                        }
+                    }
+                }
+                else {
+                    allTracks.append(contentsOf: looseTracks)
+                    for track in looseTracks {
+                        let artwork = Utils.shared.loadImageFromDocuments(filePath: track.artwork)
+                        preloadedImages[track.artwork] = Utils.shared.resizeImageSmall(image: artwork)
+                    }
+                }
                 for album in albums {
-                    let trackList = AlbumManager.shared.convertToTrackList(album)
+                    let tracklist = AlbumManager.shared.convertToTrackList(album)
                     let artwork = Utils.shared.loadImageFromDocuments(filePath: album.artwork)
-                    allTracks.append(contentsOf: trackList)
-                    preloadedImages[album.artwork] = Utils.shared.resizeImageSmall(image: artwork)
+                    if !currentPaths.isEmpty {
+                        var count = 0
+                        for track in tracklist {
+                            if !currentPaths.contains(track.path) {
+                                allTracks.append(track)
+                            }
+                            else {
+                                count+=1
+                            }
+                        }
+                        if count < tracklist.count {
+                            preloadedImages[album.artwork] = Utils.shared.resizeImageSmall(image: artwork)
+                        }
+                    }
+                    else {
+                        allTracks.append(contentsOf: tracklist)
+                        preloadedImages[album.artwork] = Utils.shared.resizeImageSmall(image: artwork)
+                    }
                 }
-                
-                for track in looseTracks {
-                    let artwork = Utils.shared.loadImageFromDocuments(filePath: track.artwork)
-                    preloadedImages[track.artwork] = Utils.shared.resizeImageSmall(image: artwork)
-                }
-                
                 for track in selectedTracks {
                     selectedPaths.insert(track.path)
                 }

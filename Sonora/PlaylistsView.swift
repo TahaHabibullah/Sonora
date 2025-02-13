@@ -50,7 +50,7 @@ struct PlaylistsView: View {
                                         Text("Untitled playlist")
                                             .padding(.leading, 10)
                                             .foregroundColor(.white)
-                                            .font(.subheadline)
+                                            .font(.title3)
                                             .bold()
                                             .lineLimit(1)
                                             .truncationMode(.tail)
