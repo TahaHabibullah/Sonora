@@ -15,6 +15,7 @@ struct Playlist: Codable, Identifiable, Hashable {
     var tracklist: [Track]
     var lastPlayed: Date?
     var dateAdded: Date
+    var duration: String
     
     init(name: String, artwork: UIImage?, tracklist: [Track]) {
         self.id = UUID()
@@ -23,6 +24,7 @@ struct Playlist: Codable, Identifiable, Hashable {
         self.tracklist = tracklist
         self.lastPlayed = nil
         self.dateAdded = Date.now
+        self.duration = Utils.shared.getPlaylistDuration(from: tracklist.map { $0.path })
     }
     
     init() {
@@ -32,6 +34,7 @@ struct Playlist: Codable, Identifiable, Hashable {
         self.tracklist = []
         self.lastPlayed = nil
         self.dateAdded = Date.now
+        self.duration = "0h 0m"
     }
     
     mutating func replaceArtwork(_ artwork: UIImage) {

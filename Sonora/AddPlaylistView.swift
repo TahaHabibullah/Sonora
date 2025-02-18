@@ -79,6 +79,7 @@ struct AddPlaylistView: View {
                     
                     List {
                         Button(action: {
+                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                             isTrackPickerPresented = true
                         }) {
                             HStack {

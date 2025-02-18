@@ -10,7 +10,6 @@ import SwiftUI
 struct EditTracklistView: View {
     @Binding var isPresented: Bool
     @State var playlist: Playlist
-    var preloadedImages: [String?: UIImage?]
     
     var body: some View {
         NavigationView {
@@ -18,27 +17,9 @@ struct EditTracklistView: View {
                 List {
                     ForEach(playlist.tracklist, id: \.self) { track in
                         HStack {
-                            if !preloadedImages.isEmpty {
-                                if let artworkPath = track.artwork {
-                                    if let artwork = preloadedImages[artworkPath]! {
-                                        Image(uiImage: artwork)
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(width: 50, height: 50)
-                                    }
-                                    else {
-                                        Image(systemName: "music.note.list")
-                                            .font(.subheadline)
-                                            .frame(width: 50, height: 50)
-                                            .background(Color.gray.opacity(0.5))
-                                    }
-                                }
-                                else {
-                                    Image(systemName: "music.note.list")
-                                        .font(.subheadline)
-                                        .frame(width: 50, height: 50)
-                                        .background(Color.gray.opacity(0.5))
-                                }
+                            if let artworkPath = track.artwork {
+                                CachedImageView(path: artworkPath)
+                                    .frame(width: 50, height: 50)
                             }
                             else {
                                 Image(systemName: "music.note.list")

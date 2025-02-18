@@ -113,10 +113,8 @@ struct LibraryView: View {
                                     playQueue.startPlaylistQueue(from: track, in: looseTracks)
                                 }) {
                                     HStack {
-                                        if let artwork = Utils.shared.loadImageFromDocuments(filePath: track.artwork) {
-                                            Image(uiImage: artwork)
-                                                .resizable()
-                                                .scaledToFit()
+                                        if let artworkPath = track.artwork {
+                                            CachedImageView(path: artworkPath)
                                                 .frame(width: 50, height: 50)
                                                 .padding(.leading, 15)
                                                 .animation(nil)

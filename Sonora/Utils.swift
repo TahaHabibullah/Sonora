@@ -103,6 +103,26 @@ class Utils {
         }
     }
     
+    func getPlaylistDuration(from tracklist: [String]) -> String {
+        let fileManager = FileManager.default
+        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        var totalSeconds: Double = 0
+        
+        for trackPath in tracklist {
+            let trackURL = documentsDirectory.appendingPathComponent(trackPath)
+            let asset = AVURLAsset(url: trackURL)
+            let duration = asset.duration
+            let durationInSeconds = CMTimeGetSeconds(duration)
+            if durationInSeconds.isFinite {
+                totalSeconds += durationInSeconds
+            }
+        }
+        
+        let minutes = Int(totalSeconds) / 60
+        let hours = minutes / 60
+        return "\(hours)h \(minutes % 60)m"
+    }
+    
     func directoryExists(at path: URL) -> Bool {
         var isDirectory: ObjCBool = false
         let fileManager = FileManager.default
@@ -140,6 +160,70 @@ struct ImagePicker: UIViewControllerRepresentable {
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             picker.dismiss(animated: true)
+        }
+    }
+}
+
+class ImageCache {
+    static let shared = ImageCache()
+    private init() {}
+    
+    private let cache = NSCache<NSString, UIImage>()
+    
+    func getImage(forKey key: String) -> UIImage? {
+        return cache.object(forKey: key as NSString)
+    }
+    
+    func setImage(_ image: UIImage, forKey key: String) {
+        cache.setObject(image, forKey: key as NSString)
+    }
+}
+
+class CacheImageLoader: ObservableObject {
+    @Published var image: UIImage?
+    
+    func loadImage(from path: String) {
+        DispatchQueue.global(qos: .background).async {
+            if let cachedImage = ImageCache.shared.getImage(forKey: path) {
+                DispatchQueue.main.async {
+                    self.image = cachedImage
+                }
+                return
+            }
+            
+            if let cachedImage = Utils.shared.loadImageFromDocuments(filePath: path) {
+                let resizedImage = Utils.shared.resizeImage(image: cachedImage)!
+                ImageCache.shared.setImage(resizedImage, forKey: path)
+                DispatchQueue.main.async {
+                    self.image = resizedImage
+                }
+                return
+            }
+            
+            print("Image not found at: \(path)")
+        }
+    }
+}
+
+struct CachedImageView: View {
+    let path: String
+    @StateObject private var loader = CacheImageLoader()
+    
+    var body: some View {
+        Group {
+            if let image = loader.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                Image(systemName: "music.note.list")
+                    .font(.subheadline)
+                    .frame(width: 50, height: 50)
+                    .background(Color.gray.opacity(0.5))
+                    .onAppear {
+                        loader.loadImage(from: path)
+                    }
+            }
         }
     }
 }

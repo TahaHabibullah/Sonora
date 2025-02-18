@@ -21,7 +21,6 @@ struct PlaylistView: View {
     @State private var tracksToAdd: [Track] = []
     @State private var isEditingName = false
     @State private var newArtwork: UIImage? = nil
-    @State private var preloadedImages: [String?: UIImage?] = [:]
     @State var playlist: Playlist
     @FocusState private var nameFieldFocused: Bool
     let haptics = UIImpactFeedbackGenerator(style: .light)
@@ -81,6 +80,15 @@ struct PlaylistView: View {
                     }
                 }
                 
+                HStack {
+                    Spacer()
+                    Text("\(playlist.tracklist.count) Tracks  |  \(playlist.duration)")
+                        .font(.caption)
+                    Spacer()
+                }
+                .padding(.top, 5)
+                .foregroundColor(.gray)
+                
                 if !playlist.tracklist.isEmpty {
                     let tracklist = playlist.tracklist
                     HStack(spacing: 0) {
@@ -88,6 +96,7 @@ struct PlaylistView: View {
                             haptics.impactOccurred()
                             playQueue.startPlaylistQueueUnshuffled(from: tracklist, playlistName: playlist.name)
                             playlist.lastPlayed = Date.now
+                            PlaylistManager.shared.replacePlaylist(playlist)
                         }) {
                             HStack {
                                 Text("Play")
@@ -111,6 +120,7 @@ struct PlaylistView: View {
                             haptics.impactOccurred()
                             playQueue.startPlaylistQueueShuffled(from: tracklist, playlistName: playlist.name)
                             playlist.lastPlayed = Date.now
+                            PlaylistManager.shared.replacePlaylist(playlist)
                         }) {
                             HStack {
                                 Text("Shuffle")
@@ -136,32 +146,14 @@ struct PlaylistView: View {
                     Button(action: {
                         playQueue.startPlaylistQueue(from: track, in: playlist.tracklist, playlistName: playlist.name)
                         playlist.lastPlayed = Date.now
+                        PlaylistManager.shared.replacePlaylist(playlist)
                     }) {
                         HStack {
-                            if !preloadedImages.isEmpty {
-                                if let artworkPath = track.artwork {
-                                    if let artwork = preloadedImages[artworkPath] {
-                                        Image(uiImage: artwork!)
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(width: 50, height: 50)
-                                            .padding(.leading, 15)
-                                    }
-                                    else {
-                                        Image(systemName: "music.note.list")
-                                            .font(.subheadline)
-                                            .frame(width: 50, height: 50)
-                                            .background(Color.gray.opacity(0.5))
-                                            .padding(.leading, 15)
-                                    }
-                                }
-                                else {
-                                    Image(systemName: "music.note.list")
-                                        .font(.subheadline)
-                                        .frame(width: 50, height: 50)
-                                        .background(Color.gray.opacity(0.5))
-                                        .padding(.leading, 15)
-                                }
+                            if let artworkPath = track.artwork {
+                                CachedImageView(path: artworkPath)
+                                    .frame(width: 50, height: 50)
+                                    .padding(.leading, 15)
+                                    .animation(nil)
                             }
                             else {
                                 Image(systemName: "music.note.list")
@@ -169,6 +161,7 @@ struct PlaylistView: View {
                                     .frame(width: 50, height: 50)
                                     .background(Color.gray.opacity(0.5))
                                     .padding(.leading, 15)
+                                    .animation(nil)
                             }
                             VStack(spacing: 0) {
                                 HStack {
@@ -231,12 +224,6 @@ struct PlaylistView: View {
                 }
             }
             .padding(.bottom, 60)
-        }
-        .onAppear {
-            for track in playlist.tracklist {
-                let artwork = Utils.shared.loadImageFromDocuments(filePath: track.artwork)
-                preloadedImages[track.artwork] = Utils.shared.resizeImageSmall(image: artwork)
-            }
         }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -342,17 +329,12 @@ struct PlaylistView: View {
         .sheet(isPresented: $isTrackPickerPresented) {
             TrackPickerView(isPresented: $isTrackPickerPresented, selectedTracks: $tracksToAdd, currentTracks: playlist.tracklist)
                 .onDisappear {
-                    let artworkPaths = tracksToAdd.map { $0.artwork }
-                    let artworks = artworkPaths.map { Utils.shared.loadImageFromDocuments(filePath: $0) }
-                    for (index, artwork) in artworks.enumerated() {
-                        preloadedImages[artworkPaths[index]] = artwork
-                    }
                     playlist.tracklist.append(contentsOf: tracksToAdd)
                     PlaylistManager.shared.replacePlaylist(playlist)
                 }
         }
         .sheet(isPresented: $isEditTracklistPresented) {
-            EditTracklistView(isPresented: $isEditTracklistPresented, playlist: playlist, preloadedImages: preloadedImages)
+            EditTracklistView(isPresented: $isEditTracklistPresented, playlist: playlist)
                 .onDisappear {
                     playlist = PlaylistManager.shared.fetchPlaylist(playlist.id)
                 }
@@ -360,12 +342,6 @@ struct PlaylistView: View {
         .sheet(item: $trackToEdit) { track in
             if let index = playlist.tracklist.firstIndex(where: { $0.id == track.id }) {
                 EditTrackView(playlist: playlist, track: track, trackIndex: index)
-                    .onDisappear {
-                        playlist = PlaylistManager.shared.fetchPlaylist(playlist.id)
-                        let artworkPath = playlist.tracklist[index].artwork
-                        let artwork = Utils.shared.loadImageFromDocuments(filePath: artworkPath)
-                        preloadedImages[artworkPath] = artwork
-                    }
             }
         }
         .sheet(item: $trackToAdd) { track in

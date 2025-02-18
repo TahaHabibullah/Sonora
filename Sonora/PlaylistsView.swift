@@ -11,13 +11,37 @@ struct PlaylistsView: View {
     @State private var isAddPlaylistPresented: Bool = false
     @State private var playlists: [Playlist] = []
     @State private var showPopup: String = ""
+    @State private var sortOption: SortOption = .recentPlayed
+    let haptics = UIImpactFeedbackGenerator(style: .light)
+    
+    enum SortOption {
+        case recentPlayed, recentAdded, nameAsc, nameDesc
+    }
+    
+    var sortedItems: [Playlist] {
+        switch sortOption {
+        case .recentPlayed:
+            return playlists.sorted {
+                guard let date0 = $0.lastPlayed, let date1 = $1.lastPlayed else {
+                    return $0.lastPlayed != nil
+                }
+                return date0 > date1
+            }
+        case .recentAdded:
+            return playlists.sorted { $0.dateAdded > $1.dateAdded }
+        case .nameAsc:
+            return playlists.sorted { $0.name < $1.name }
+        case .nameDesc:
+            return playlists.sorted { $0.name > $1.name }
+        }
+    }
     
     var body: some View {
         VStack {
             NavigationStack {
                 VStack {
                     List {
-                        ForEach(playlists) { playlist in
+                        ForEach(sortedItems) { playlist in
                             NavigationLink(destination: PlaylistView(playlist: playlist)) {
                                 HStack() {
                                     if let artwork = playlist.artwork {
@@ -93,9 +117,61 @@ struct PlaylistsView: View {
                 }
                 .navigationTitle("Playlists")
                 .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Menu {
+                            Button(action: {
+                                sortOption = .recentPlayed
+                            }) {
+                                HStack {
+                                    Text("Recently Played")
+                                    Spacer()
+                                    if sortOption == .recentPlayed {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: {
+                                sortOption = .recentAdded
+                            }) {
+                                HStack {
+                                    Text("Recently Added")
+                                    Spacer()
+                                    if sortOption == .recentAdded {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: {
+                                sortOption = .nameAsc
+                            }) {
+                                HStack {
+                                    Text("Name A-Z")
+                                    Spacer()
+                                    if sortOption == .nameAsc {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: {
+                                sortOption = .nameDesc
+                            }) {
+                                HStack {
+                                    Text("Name Z-A")
+                                    Spacer()
+                                    if sortOption == .nameDesc {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                        }
+                        .simultaneousGesture(TapGesture().onEnded {
+                            haptics.impactOccurred()
+                        })
+                    }
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: {
-                            let haptics = UIImpactFeedbackGenerator(style: .light)
                             haptics.impactOccurred()
                             isAddPlaylistPresented = true
                         }) {
