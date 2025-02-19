@@ -12,19 +12,25 @@ struct Album: Codable, Identifiable {
     let id: UUID
     var name: String
     var artist: String
-    var titles: [String]
     var artwork: String?
-    var tracks: [String]
+    var smallArtwork: String?
+    var tracklist: [Track]
     var directory: String
+    var lastPlayed: Date?
+    var dateAdded: Date
+    var duration: String
     
-    init(name: String, artist: String, artwork: String?, tracks: [String], directory: String) {
+    init(name: String, artist: String, artwork: String?, smallArtwork: String?, tracklist: [Track], directory: String) {
         self.id = UUID()
         self.name = name
         self.artist = artist
-        self.titles = tracks.map { URL(fileURLWithPath: $0).deletingPathExtension().lastPathComponent }
         self.artwork = artwork
-        self.tracks = tracks
+        self.smallArtwork = artwork
+        self.tracklist = tracklist
         self.directory = directory
+        self.lastPlayed = nil
+        self.dateAdded = Date.now
+        self.duration = Utils.shared.getPlaylistDuration(from: tracklist.map { $0.path })
     }
 }
 
@@ -64,15 +70,6 @@ class AlbumManager {
         if let data = try? JSONEncoder().encode(albums) {
             UserDefaults.standard.set(data, forKey: storageKey)
         }
-    }
-    
-    func convertToTrackList(_ album: Album) -> [Track] {
-        var tracks: [Track] = []
-        for (index, element) in album.tracks.enumerated() {
-            let track = Track(artist: album.artist, title: album.titles[index], artwork: album.artwork, path: element)
-            tracks.append(track)
-        }
-        return tracks
     }
     
     private func deleteAlbumDirectory(path: String) {

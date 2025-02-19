@@ -132,9 +132,12 @@ struct EditTrackView: View {
         .sheet(isPresented: $isImagePickerPresented) {
             ImagePicker(selectedImage: $newArtwork)
                 .onDisappear {
-                    let resizedArtwork = Utils.shared.resizeImage(image: newArtwork)
-                    let artworkPath = Utils.shared.copyTrackImageToDocuments(artwork: resizedArtwork, trackPath: track.path)
-                    track.artwork = artworkPath
+                    ImageCache.shared.removeImage(forKey: track.path)
+                    let resizedArtwork = Utils.shared.resizeImage(image: newArtwork, newSize: CGSize(width: 600, height: 600))
+                    let resizedArtworkSmall = Utils.shared.resizeImage(image: newArtwork, newSize: CGSize(width: 100, height: 100))
+                    let artworkPaths = Utils.shared.copyLooseTrackImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, trackPath: track.path)
+                    track.artwork = artworkPaths.first
+                    track.smallArtwork = artworkPaths.last
                 }
         }
     }

@@ -14,20 +14,14 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var currentTrack: Track? = nil
     @Published var currentIndex: Int? = nil
     @Published var name: String = ""
-    @Published var tracks: [String] = []
-    @Published var titles: [String] = []
-    @Published var artists: [String] = []
-    @Published var artworks: [String?] = []
+    @Published var tracklist: [Track] = []
+    @Published var originalTracklist: [Track] = []
     @Published var trackQueue: [Track] = []
     @Published var isPlaying: Bool = false
     @Published var isShuffled: Bool = false
     @Published var audioPlayer: AVAudioPlayer?
     @Published var originalName: String = ""
     var playbackTimer: Timer?
-    private var originalTracks: [String] = []
-    private var originalTitles: [String] = []
-    private var originalArtists: [String] = []
-    private var originalArtworks: [String?] = []
     
     override init() {
         super.init()
@@ -44,17 +38,11 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     func startQueue(from track: Int, in album: Album) {
         currentIndex = track
         if currentIndex != nil {
-            name = album.name
-            tracks = album.tracks
-            titles = album.titles
-            artworks = Array(repeating: album.artwork, count: album.titles.count)
-            artists = Array(repeating: album.artist, count: album.titles.count)
+            originalTracklist = album.tracklist
+            tracklist = album.tracklist
             
             originalName = album.name
-            originalTracks = album.tracks
-            originalTitles = album.titles
-            originalArtworks = Array(repeating: album.artwork, count: album.titles.count)
-            originalArtists = Array(repeating: album.artist, count: album.titles.count)
+            name = album.name
             isShuffled = false
             playCurrentTrack()
             startPlaybackUpdates()
@@ -63,115 +51,71 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     
     func startShuffledQueue(from album: Album) {
         currentIndex = 0
-        name = album.name
-        let shuffledIndices = album.tracks.indices.shuffled()
+        originalTracklist = album.tracklist
         originalName = album.name
-        originalTracks = album.tracks
-        originalTitles = album.titles
-        originalArtworks = Array(repeating: album.artwork, count: album.titles.count)
-        originalArtists = Array(repeating: album.artist, count: album.titles.count)
+        name = album.name
         
-        tracks = shuffledIndices.map { album.tracks[$0] }
-        titles = shuffledIndices.map { album.titles[$0] }
-        artworks = Array(repeating: album.artwork, count: album.titles.count)
-        artists = Array(repeating: album.artist, count: album.titles.count)
+        let shuffledIndices = album.tracklist.indices.shuffled()
+        tracklist = shuffledIndices.map { album.tracklist[$0] }
+        
         isShuffled = true
         playCurrentTrack()
         startPlaybackUpdates()
     }
     
-    func startPlaylistQueue(from track: Track, in trackList: [Track], playlistName: String = "Loose Tracks") {
-        let trackPath = track.path
-        let trackPaths = trackList.map { $0.path }
-        let trackIndex = trackPaths.firstIndex(of: trackPath)
-        var trackListCopy = trackList
-        trackListCopy.remove(at: trackIndex!)
-        
+    func startPlaylistQueue(from track: Track, in tracks: [Track], playlistName: String = "Loose Tracks") {
+        originalTracklist = tracks
         originalName = playlistName
-        originalTracks = trackList.map { $0.path }
-        originalTitles = trackList.map { $0.title }
-        originalArtists = trackList.map { $0.artist }
-        originalArtworks = trackList.map { $0.artwork }
         currentIndex = 0
         
-        let tracksQueue = trackListCopy.map { $0.path }
-        let artistsQueue = trackListCopy.map { $0.artist }
-        let titlesQueue = trackListCopy.map { $0.title }
-        let artworksQueue = trackListCopy.map { $0.artwork }
+        let tracklistIds = tracks.map { $0.id }
+        let trackIndex = tracklistIds.firstIndex(of: track.id)
+        var trackListCopy = tracks
+        trackListCopy.remove(at: trackIndex!)
         
-        let shuffledIndices = tracksQueue.indices.shuffled()
-        var shuffledTracksQueue = shuffledIndices.map { tracksQueue[$0] }
-        var shuffledTitlesQueue = shuffledIndices.map { titlesQueue[$0] }
-        var shuffledArtistsQueue = shuffledIndices.map { artistsQueue[$0] }
-        var shuffledArtworksQueue = shuffledIndices.map { artworksQueue[$0] }
-        
-        shuffledTracksQueue.insert(trackPath, at: 0)
-        shuffledTitlesQueue.insert(track.title, at: 0)
-        shuffledArtistsQueue.insert(track.artist, at: 0)
-        shuffledArtworksQueue.insert(track.artwork, at: 0)
+        let shuffledIndices = trackListCopy.indices.shuffled()
+        var shuffledTracklist = shuffledIndices.map { trackListCopy[$0] }
+        shuffledTracklist.insert(track, at: 0)
         
         name = playlistName
-        tracks = shuffledTracksQueue
-        titles = shuffledTitlesQueue
-        artists = shuffledArtistsQueue
-        artworks = shuffledArtworksQueue
+        tracklist = shuffledTracklist
         isShuffled = true
         playCurrentTrack()
         startPlaybackUpdates()
     }
     
-    func startPlaylistQueueUnshuffled(from trackList: [Track], playlistName: String) {
-        let tracksQueue = trackList.map { $0.path }
-        let titlesQueue = trackList.map { $0.title }
-        let artistsQueue = trackList.map { $0.artist }
-        let artworksQueue = trackList.map { $0.artwork }
-        
-        originalName = playlistName
-        originalTracks = tracksQueue
-        originalTitles = titlesQueue
-        originalArtists = artistsQueue
-        originalArtworks = artworksQueue
+    func startPlaylistQueueUnshuffled(from tracks: [Track], playlistName: String) {
+        originalTracklist = tracks
+        tracklist = tracks
         currentIndex = 0
         
         if playlistName.isEmpty {
+            originalName = "Untitled Playlist"
             name = "Untitled Playlist"
         }
         else {
+            originalName = playlistName
             name = playlistName
         }
-        tracks = tracksQueue
-        titles = titlesQueue
-        artists = artistsQueue
-        artworks = artworksQueue
         isShuffled = false
         playCurrentTrack()
         startPlaybackUpdates()
     }
     
-    func startPlaylistQueueShuffled(from trackList: [Track], playlistName: String) {
-        let tracksQueue = trackList.map { $0.path }
-        let titlesQueue = trackList.map { $0.title }
-        let artistsQueue = trackList.map { $0.artist }
-        let artworksQueue = trackList.map { $0.artwork }
-        
-        originalName = playlistName
-        originalTracks = tracksQueue
-        originalTitles = titlesQueue
-        originalArtists = artistsQueue
-        originalArtworks = artworksQueue
+    func startPlaylistQueueShuffled(from tracks: [Track], playlistName: String) {
+        originalTracklist = tracks
         currentIndex = 0
         
-        let shuffledIndices = tracksQueue.indices.shuffled()
+        let shuffledIndices = tracks.indices.shuffled()
         if playlistName.isEmpty {
+            originalName = "Untitled Playlist"
             name = "Untitled Playlist"
         }
         else {
+            originalName = playlistName
             name = playlistName
         }
-        tracks = shuffledIndices.map { tracksQueue[$0] }
-        titles = shuffledIndices.map { titlesQueue[$0] }
-        artists = shuffledIndices.map { artistsQueue[$0] }
-        artworks = shuffledIndices.map { artworksQueue[$0] }
+        tracklist = shuffledIndices.map { tracks[$0] }
         isShuffled = true
         playCurrentTrack()
         startPlaybackUpdates()
@@ -180,35 +124,16 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     func shuffleTracks() {
         guard currentIndex != nil else { return }
         
-        var trackQueue = tracks
-        var titlesQueue = titles
-        var artistsQueue = artists
-        var artworksQueue = artworks
+        var trackQueue = tracklist
         trackQueue.remove(at: currentIndex!)
-        titlesQueue.remove(at: currentIndex!)
-        artistsQueue.remove(at: currentIndex!)
-        artworksQueue.remove(at: currentIndex!)
         
         let shuffledIndices = trackQueue.indices.shuffled()
-        var shuffledQueueTracks = shuffledIndices.map { trackQueue[$0] }
-        var shuffledQueueTitles = shuffledIndices.map { titlesQueue[$0] }
-        var shuffledQueueArtists = shuffledIndices.map { artistsQueue[$0] }
-        var shuffledQueueArtworks = shuffledIndices.map { artworksQueue[$0] }
+        var shuffledTrackQueue = shuffledIndices.map { trackQueue[$0] }
         
-        let currentTrack = tracks[currentIndex!]
-        let currentTitle = titles[currentIndex!]
-        let currentArtist = artists[currentIndex!]
-        let currentArtwork = artworks[currentIndex!]
+        let currentTrack = tracklist[currentIndex!]
+        shuffledTrackQueue.insert(currentTrack, at: 0)
         
-        shuffledQueueTitles.insert(currentTitle, at: 0)
-        shuffledQueueTracks.insert(currentTrack, at: 0)
-        shuffledQueueArtists.insert(currentArtist, at: 0)
-        shuffledQueueArtworks.insert(currentArtwork, at: 0)
-        
-        tracks = shuffledQueueTracks
-        titles = shuffledQueueTitles
-        artists = shuffledQueueArtists
-        artworks = shuffledQueueArtworks
+        tracklist = shuffledTrackQueue
         currentIndex = 0
         isShuffled = true
     }
@@ -216,12 +141,9 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     func unshuffleTracks() {
         guard currentIndex != nil else { return }
         
-        let currentTrack = tracks[currentIndex!]
-        currentIndex = originalTracks.firstIndex(where: { $0 == currentTrack })!
-        tracks = originalTracks
-        titles = originalTitles
-        artists = originalArtists
-        artworks = originalArtworks
+        let currentId = tracklist[currentIndex!].id
+        currentIndex = originalTracklist.firstIndex(where: { $0.id == currentId })!
+        tracklist = originalTracklist
         isShuffled = false
     }
     
@@ -242,7 +164,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             stopPlayback()
             return
         }
-        guard currentIndex! < tracks.count-1 else {
+        guard currentIndex! < tracklist.count-1 else {
             stopPlayback()
             return
         }
@@ -268,7 +190,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         
         do {
             let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-            let trackPath = tracks[currentIndex!]
+            let trackPath = tracklist[currentIndex!].path
             let trackURL = documentsDirectory.appendingPathComponent(trackPath)
             
             audioPlayer = try AVAudioPlayer(contentsOf: trackURL)
@@ -276,21 +198,19 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             audioPlayer?.play()
             isPlaying = true
             name = originalName
-            currentTrack = Track(artist: artists[currentIndex!],
-                                 title: titles[currentIndex!],
-                                 artwork: artworks[currentIndex!],
-                                 path: trackPath)
+            
+            currentTrack = tracklist[currentIndex!]
             
             guard let player = audioPlayer else { return }
             
             var nowPlayingInfo: [String: Any] = [
-                MPMediaItemPropertyTitle: titles[currentIndex!],
-                MPMediaItemPropertyArtist: artists[currentIndex!],
+                MPMediaItemPropertyTitle: tracklist[currentIndex!].title,
+                MPMediaItemPropertyArtist: tracklist[currentIndex!].artist,
                 MPMediaItemPropertyPlaybackDuration: player.duration,
                 MPNowPlayingInfoPropertyElapsedPlaybackTime: player.currentTime
             ]
             
-            if let artworkPath = artworks[currentIndex!] {
+            if let artworkPath = tracklist[currentIndex!].artwork {
                 if let image = Utils.shared.loadImageFromDocuments(filePath: artworkPath) {
                     let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
                     nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
@@ -363,10 +283,6 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         currentTrack = nil
         isShuffled = false
         name = ""
-        tracks = []
-        artists = []
-        titles = []
-        artworks = []
     }
     
     func skipToTrack(_ index: Int) {

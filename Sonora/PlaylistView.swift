@@ -149,11 +149,23 @@ struct PlaylistView: View {
                         PlaylistManager.shared.replacePlaylist(playlist)
                     }) {
                         HStack {
-                            if let artworkPath = track.artwork {
-                                CachedImageView(path: artworkPath)
-                                    .frame(width: 50, height: 50)
-                                    .padding(.leading, 15)
-                                    .animation(nil)
+                            if let artworkPath = track.smallArtwork {
+                                if let artwork = Utils.shared.loadImageFromDocuments(filePath: artworkPath) {
+                                    Image(uiImage: artwork)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 50, height: 50)
+                                        .padding(.leading, 15)
+                                        .animation(nil)
+                                }
+                                else {
+                                    Image(systemName: "music.note.list")
+                                        .font(.subheadline)
+                                        .frame(width: 50, height: 50)
+                                        .background(Color.gray.opacity(0.5))
+                                        .padding(.leading, 15)
+                                        .animation(nil)
+                                }
                             }
                             else {
                                 Image(systemName: "music.note.list")
@@ -320,14 +332,15 @@ struct PlaylistView: View {
             ImagePicker(selectedImage: $newArtwork)
                 .onDisappear() {
                     if let newArtwork = newArtwork {
-                        let resizedArtwork = Utils.shared.resizeImage(image: newArtwork)
+                        let resizedArtwork = Utils.shared.resizeImage(image: newArtwork, newSize: CGSize(width: 400, height: 400))
                         playlist.replaceArtwork(resizedArtwork!)
                         PlaylistManager.shared.replacePlaylist(playlist)
                     }
                 }
         }
         .sheet(isPresented: $isTrackPickerPresented) {
-            TrackPickerView(isPresented: $isTrackPickerPresented, selectedTracks: $tracksToAdd, currentTracks: playlist.tracklist)
+            let currentIds = playlist.tracklist.map { $0.id }
+            TrackPickerView(isPresented: $isTrackPickerPresented, selectedTracks: $tracksToAdd, currentIds: Set(currentIds))
                 .onDisappear {
                     playlist.tracklist.append(contentsOf: tracksToAdd)
                     PlaylistManager.shared.replacePlaylist(playlist)
@@ -342,6 +355,9 @@ struct PlaylistView: View {
         .sheet(item: $trackToEdit) { track in
             if let index = playlist.tracklist.firstIndex(where: { $0.id == track.id }) {
                 EditTrackView(playlist: playlist, track: track, trackIndex: index)
+                    .onDisappear {
+                        playlist = PlaylistManager.shared.fetchPlaylist(playlist.id)
+                    }
             }
         }
         .sheet(item: $trackToAdd) { track in

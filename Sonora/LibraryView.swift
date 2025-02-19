@@ -54,6 +54,7 @@ struct LibraryView: View {
                                                 .resizable()
                                                 .scaledToFit()
                                                 .shadow(color: Color.gray.opacity(0.5), radius: 10)
+                                                .animation(nil)
                                         } else {
                                             Image(systemName: "music.note.list")
                                                 .font(.title)
@@ -62,6 +63,7 @@ struct LibraryView: View {
                                                 .foregroundColor(.gray)
                                                 .border(.gray, width: 1)
                                                 .shadow(color: Color.gray.opacity(0.5), radius: 10)
+                                                .animation(nil)
                                         }
                                         VStack(spacing: 0) {
                                             if !album.name.isEmpty {
@@ -113,7 +115,7 @@ struct LibraryView: View {
                                     playQueue.startPlaylistQueue(from: track, in: looseTracks)
                                 }) {
                                     HStack {
-                                        if let artworkPath = track.artwork {
+                                        if let artworkPath = track.smallArtwork {
                                             CachedImageView(path: artworkPath)
                                                 .frame(width: 50, height: 50)
                                                 .padding(.leading, 15)

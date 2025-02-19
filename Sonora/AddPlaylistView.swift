@@ -136,7 +136,7 @@ struct AddPlaylistView: View {
                     }
                     .foregroundColor(.blue),
                     trailing: Button("Save") {
-                        let resizedArtwork = Utils.shared.resizeImage(image: artwork)
+                        let resizedArtwork = Utils.shared.resizeImage(image: artwork, newSize: CGSize(width: 400, height: 400))
                         let playlist = Playlist(name: playlistName, artwork: resizedArtwork, tracklist: selectedTracks)
                         PlaylistManager.shared.savePlaylist(playlist)
                         showPopup = "Created playlist"

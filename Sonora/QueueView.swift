@@ -51,8 +51,7 @@ struct QueueView: View {
                 .padding(.leading, 15)
                 
                 HStack {
-                    if let artwork = Utils.shared.loadImageFromDocuments(
-                        filePath: currentTrack.artwork) {
+                    if let artwork = Utils.shared.loadImageFromDocuments(filePath: currentTrack.artwork) {
                         Image(uiImage: artwork)
                             .resizable()
                             .scaledToFit()
@@ -141,23 +140,23 @@ struct QueueView: View {
                         }
                     }
                     
-                    if !playQueue.tracks.isEmpty {
+                    if !playQueue.tracklist.isEmpty {
                         Section {
-                            ForEach(Array(playQueue.tracks[(currentIndex+1)...].enumerated()), id: \.element) { index, element in
+                            ForEach(Array(playQueue.tracklist[(currentIndex+1)...].enumerated()), id: \.element) { index, element in
                                 Button(action: {
                                     playQueue.skipToTrack(currentIndex+1 + index)
                                 }) {
                                     HStack {
                                         VStack(spacing: 0) {
                                             HStack {
-                                                Text(playQueue.titles[currentIndex+1 + index])
+                                                Text(playQueue.tracklist[currentIndex+1 + index].title)
                                                     .font(.subheadline)
                                                     .lineLimit(1)
                                                     .truncationMode(.tail)
                                                 Spacer()
                                             }
                                             HStack {
-                                                Text(playQueue.artists[currentIndex+1 + index])
+                                                Text(playQueue.tracklist[currentIndex+1 + index].artist)
                                                     .font(.subheadline)
                                                     .lineLimit(1)
                                                     .truncationMode(.tail)
@@ -209,7 +208,7 @@ struct QueueView: View {
                                             .frame(width: 20, height: 20)
                                             .foregroundColor(.gray)
                                     }
-                                    .disabled(playQueue.tracks.isEmpty)
+                                    .disabled(playQueue.tracklist.isEmpty)
                                 }
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -239,10 +238,7 @@ struct QueueView: View {
     private func deleteTrack(at offsets: IndexSet) {
         if let index = offsets.first {
             if let currentIndex = playQueue.currentIndex {
-                playQueue.tracks.remove(at: index + currentIndex+1)
-                playQueue.titles.remove(at: index + currentIndex+1)
-                playQueue.artists.remove(at: index + currentIndex+1)
-                playQueue.artworks.remove(at: index + currentIndex+1)
+                playQueue.tracklist.remove(at: index + currentIndex+1)
             }
         }
     }
@@ -252,10 +248,7 @@ struct QueueView: View {
         if let index = source.first {
             if let currentIndex = playQueue.currentIndex {
                 indexOffset.insert(index + currentIndex+1)
-                playQueue.tracks.move(fromOffsets: indexOffset, toOffset: destination + currentIndex+1)
-                playQueue.titles.move(fromOffsets: indexOffset, toOffset: destination + currentIndex+1)
-                playQueue.artists.move(fromOffsets: indexOffset, toOffset: destination + currentIndex+1)
-                playQueue.artworks.move(fromOffsets: indexOffset, toOffset: destination + currentIndex+1)
+                playQueue.tracklist.move(fromOffsets: indexOffset, toOffset: destination + currentIndex+1)
             }
         }
     }

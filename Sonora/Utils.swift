@@ -11,38 +11,50 @@ import AVFoundation
 class Utils {
     static let shared = Utils()
     
-    func copyImageToDocuments(artwork: UIImage?, directory: String) -> String? {
-        guard artwork != nil else { return nil }
+    func copyImagesToDocuments(artwork: UIImage?, smallArtwork: UIImage?, directory: String) -> (first: String?, last: String?) {
+        guard artwork != nil else { return (first: nil, last: nil) }
+        guard smallArtwork != nil else { return (first: nil, last: nil) }
         let image = artwork!.jpegData(compressionQuality: 1)!
+        let smallImage = smallArtwork!.jpegData(compressionQuality: 1)!
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         let fileURL = documentsURL.appendingPathComponent(directory + "/artwork.jpg")
+        let fileURLSmall = documentsURL.appendingPathComponent(directory + "/artwork_small.jpg")
         let filePath = directory + "/artwork.jpg"
+        let filePathSmall = directory + "/artwork_small.jpg"
 
         do {
             try image.write(to: fileURL)
-            return filePath
+            try smallImage.write(to: fileURLSmall)
+            let result = (first: filePath, last: filePathSmall)
+            return result
         } catch {
             print("Error saving image: \(error.localizedDescription)")
-            return nil
+            return (first: nil, last: nil)
         }
     }
     
-    func copyTrackImageToDocuments(artwork: UIImage?, trackPath: String) -> String? {
-        guard artwork != nil else { return nil }
+    func copyLooseTrackImagesToDocuments(artwork: UIImage?, smallArtwork: UIImage?, trackPath: String) -> (first: String?, last: String?) {
+        guard artwork != nil else { return (first: nil, last: nil) }
+        guard smallArtwork != nil else { return (first: nil, last: nil) }
         let image = artwork!.jpegData(compressionQuality: 1)!
+        let smallImage = smallArtwork!.jpegData(compressionQuality: 1)!
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         let trackURL = documentsURL.appendingPathComponent(trackPath)
         let fileURL = documentsURL.appendingPathComponent("Loose_Tracks/" + trackURL.deletingPathExtension().lastPathComponent + ".jpg")
+        let fileURLSmall = documentsURL.appendingPathComponent("Loose_Tracks/" + trackURL.deletingPathExtension().lastPathComponent + "_small.jpg")
         let filePath = "Loose_Tracks/" + fileURL.lastPathComponent
+        let filePathSmall = "Loose_Tracks/" + fileURL.deletingPathExtension().lastPathComponent + "_small.jpg"
 
         do {
             try image.write(to: fileURL)
-            return filePath
+            try smallImage.write(to: fileURLSmall)
+            let result = (first: filePath, last: filePathSmall)
+            return result
         } catch {
             print("Error saving image: \(error.localizedDescription)")
-            return nil
+            return (first: nil, last: nil)
         }
     }
     
@@ -54,27 +66,13 @@ class Utils {
         return UIImage(contentsOfFile: fileURL.path)
     }
     
-    func resizeImage(image: UIImage?) -> UIImage? {
+    func resizeImage(image: UIImage?, newSize: CGSize) -> UIImage? {
         guard image != nil else { return nil }
         let size = image!.size
-        let widthRatio  = 600 / size.width
-        let heightRatio = 600 / size.height
+        let widthRatio  = newSize.width / size.width
+        let heightRatio = newSize.height / size.height
         let scaleFactor = min(widthRatio, heightRatio)
-        let newSize = CGSize(width: size.width * scaleFactor, height: size.height * scaleFactor)
-        
-        UIGraphicsBeginImageContextWithOptions(newSize, false, image!.scale)
-        image!.draw(in: CGRect(origin: .zero, size: newSize))
-        let newImage = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-        return newImage
-    }
-    
-    func resizeImageSmall(image: UIImage?) -> UIImage? {
-        guard image != nil else { return nil }
-        let size = image!.size
-        let widthRatio  = 100 / size.width
-        let heightRatio = 100 / size.height
-        let scaleFactor = min(widthRatio, heightRatio)
+        if scaleFactor >= 1 { return image }
         let newSize = CGSize(width: size.width * scaleFactor, height: size.height * scaleFactor)
         
         UIGraphicsBeginImageContextWithOptions(newSize, false, image!.scale)
@@ -128,6 +126,15 @@ class Utils {
         let fileManager = FileManager.default
         return fileManager.fileExists(atPath: path.path, isDirectory: &isDirectory) && isDirectory.boolValue
     }
+    
+    func getSmallArtworkPath(from artworkPath: String?) -> String? {
+        guard artworkPath != nil else { return nil }
+        var result = artworkPath!
+        if let range = result.range(of: ".jpg") {
+            result.insert(contentsOf: "_small", at: range.lowerBound)
+        }
+        return result
+    }
 }
 
 struct ImagePicker: UIViewControllerRepresentable {
@@ -177,6 +184,10 @@ class ImageCache {
     func setImage(_ image: UIImage, forKey key: String) {
         cache.setObject(image, forKey: key as NSString)
     }
+    
+    func removeImage(forKey key: String) {
+        cache.removeObject(forKey: key as NSString)
+    }
 }
 
 class CacheImageLoader: ObservableObject {
@@ -192,10 +203,9 @@ class CacheImageLoader: ObservableObject {
             }
             
             if let cachedImage = Utils.shared.loadImageFromDocuments(filePath: path) {
-                let resizedImage = Utils.shared.resizeImage(image: cachedImage)!
-                ImageCache.shared.setImage(resizedImage, forKey: path)
+                ImageCache.shared.setImage(cachedImage, forKey: path)
                 DispatchQueue.main.async {
-                    self.image = resizedImage
+                    self.image = cachedImage
                 }
                 return
             }

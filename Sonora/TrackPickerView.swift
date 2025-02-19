@@ -10,12 +10,10 @@ import SwiftUI
 struct TrackPickerView: View {
     @Binding var isPresented: Bool
     @Binding var selectedTracks: [Track]
-    @State var currentTracks: [Track] = []
-    @State private var selectedPaths = Set<String>()
+    @State var currentIds: Set<UUID> = []
+    @State private var selectedIds = Set<UUID>()
     @State private var allTracks: [Track] = []
     @State private var searchText = ""
-    @State private var preloadedImages: [String?: UIImage?] = [:]
-    let albums: [Album] = AlbumManager.shared.fetchAlbums()
     
     var filteredTracks: [Track] {
         searchText.isEmpty ? allTracks : allTracks.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
@@ -28,34 +26,26 @@ struct TrackPickerView: View {
                     ForEach(filteredTracks, id: \.self) { track in
                         Button(action: {
                             let haptics = UISelectionFeedbackGenerator()
-                            if selectedPaths.contains(track.path) {
-                                selectedPaths.remove(track.path)
+                            if selectedIds.contains(track.id) {
+                                selectedIds.remove(track.id)
                             }
                             else {
-                                selectedPaths.insert(track.path)
+                                selectedIds.insert(track.id)
                             }
                             haptics.selectionChanged()
                         }) {
                             HStack {
                                 if let artworkPath = track.artwork {
-                                    if let artwork = preloadedImages[artworkPath] {
-                                        Image(uiImage: artwork!)
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(width: 50, height: 50)
-                                    }
-                                    else {
-                                        Image(systemName: "music.note.list")
-                                            .font(.subheadline)
-                                            .frame(width: 50, height: 50)
-                                            .background(Color.gray.opacity(0.5))
-                                    }
+                                    CachedImageView(path: artworkPath)
+                                        .frame(width: 50, height: 50)
+                                        .animation(nil)
                                 }
                                 else {
                                     Image(systemName: "music.note.list")
                                         .font(.subheadline)
                                         .frame(width: 50, height: 50)
                                         .background(Color.gray.opacity(0.5))
+                                        .animation(nil)
                                 }
                                 VStack(spacing: 0) {
                                     HStack {
@@ -75,7 +65,7 @@ struct TrackPickerView: View {
                                     }
                                 }
                                 Spacer()
-                                if selectedPaths.contains(track.path) {
+                                if selectedIds.contains(track.id) {
                                     Image(systemName: "checkmark")
                                         .font(.subheadline)
                                         .bold()
@@ -94,7 +84,7 @@ struct TrackPickerView: View {
                 .searchable(text: $searchText, prompt: "Search Tracks")
                 .listStyle(PlainListStyle())
             }
-            .navigationTitle(selectedPaths.isEmpty ? "All Tracks" : "\(selectedPaths.count) Tracks Selected")
+            .navigationTitle(selectedIds.isEmpty ? "All Tracks" : "\(selectedIds.count) Tracks Selected")
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(
                 leading: Button("Cancel") {
@@ -102,54 +92,30 @@ struct TrackPickerView: View {
                 }
                 .foregroundColor(.blue),
                 trailing: Button("Done") {
-                    selectedTracks = allTracks.filter { selectedPaths.contains($0.path) }
+                    selectedTracks = allTracks.filter { selectedIds.contains($0.id) }
                     isPresented = false
                 }
                 .foregroundColor(.blue)
             )
             .onAppear {
-                let currentPaths = Set(currentTracks.map { $0.path })
+                let albums: [Album] = AlbumManager.shared.fetchAlbums()
                 let looseTracks = TrackManager.shared.fetchTracks()
-                if !currentPaths.isEmpty {
-                    for track in looseTracks {
-                        if !currentPaths.contains(track.path) {
-                            allTracks.append(track)
-                            let artwork = Utils.shared.loadImageFromDocuments(filePath: track.artwork)
-                            preloadedImages[track.artwork] = Utils.shared.resizeImageSmall(image: artwork)
-                        }
-                    }
-                }
-                else {
-                    allTracks.append(contentsOf: looseTracks)
-                    for track in looseTracks {
-                        let artwork = Utils.shared.loadImageFromDocuments(filePath: track.artwork)
-                        preloadedImages[track.artwork] = Utils.shared.resizeImageSmall(image: artwork)
+                for track in looseTracks {
+                    if !currentIds.contains(track.id) {
+                        allTracks.append(track)
                     }
                 }
                 for album in albums {
-                    let tracklist = AlbumManager.shared.convertToTrackList(album)
-                    let artwork = Utils.shared.loadImageFromDocuments(filePath: album.artwork)
-                    if !currentPaths.isEmpty {
-                        var count = 0
-                        for track in tracklist {
-                            if !currentPaths.contains(track.path) {
-                                allTracks.append(track)
-                            }
-                            else {
-                                count+=1
-                            }
-                        }
-                        if count < tracklist.count {
-                            preloadedImages[album.artwork] = Utils.shared.resizeImageSmall(image: artwork)
+                    var result: [Track] = []
+                    for track in album.tracklist {
+                        if !currentIds.contains(track.id) {
+                            result.append(track)
                         }
                     }
-                    else {
-                        allTracks.append(contentsOf: tracklist)
-                        preloadedImages[album.artwork] = Utils.shared.resizeImageSmall(image: artwork)
-                    }
+                    allTracks.append(contentsOf: result)
                 }
                 for track in selectedTracks {
-                    selectedPaths.insert(track.path)
+                    selectedIds.insert(track.id)
                 }
             }
         }

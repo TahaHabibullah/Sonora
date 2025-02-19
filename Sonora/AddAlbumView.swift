@@ -146,9 +146,19 @@ struct AddAlbumView: View {
                         let tuple = copyFilesToDocuments(sourceURLs: selectedFiles, name: albumName)
                         let filePaths = tuple.first
                         let directory = tuple.last
-                        let resizedArtwork = Utils.shared.resizeImage(image: albumArtwork)
-                        let artworkPath = Utils.shared.copyImageToDocuments(artwork: resizedArtwork, directory: directory)
-                        let newAlbum = Album(name: albumName, artist: artist, artwork: artworkPath, tracks: filePaths, directory: directory)
+                        let resizedArtwork = Utils.shared.resizeImage(image: albumArtwork, newSize: CGSize(width: 600, height: 600))
+                        let resizedArtworkSmall = Utils.shared.resizeImage(image: albumArtwork, newSize: CGSize(width: 100, height: 100))
+                        let artworkPaths = Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: directory)
+                        let tracklist = filePaths.map { Track(artist: artist,
+                                                              artwork: artworkPaths.first,
+                                                              smallArtwork: artworkPaths.last,
+                                                              path: $0) }
+                        let newAlbum = Album(name: albumName,
+                                             artist: artist,
+                                             artwork: artworkPaths.first,
+                                             smallArtwork: artworkPaths.last,
+                                             tracklist: tracklist,
+                                             directory: directory)
                         AlbumManager.shared.saveAlbum(newAlbum)
                         showPopup = "Created album"
                         isPresented = false

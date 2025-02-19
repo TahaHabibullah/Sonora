@@ -20,7 +20,7 @@ struct AlbumView: View {
     @State private var editingTrackIndex: Int? = nil
     @State private var trackToAdd: Track? = nil
     @State private var newArtwork: UIImage? = nil
-    @State private var markedForDeletion: [String] = []
+    @State private var markedForDeletion: [Track] = []
     @State private var showPopup: String = ""
     @State var album: Album
     @FocusState private var nameFieldFocused: Bool
@@ -113,7 +113,7 @@ struct AlbumView: View {
                     }
                 }
                 
-                if !album.tracks.isEmpty {
+                if !album.tracklist.isEmpty {
                     HStack(spacing: 0) {
                         Button(action: {
                             haptics.impactOccurred()
@@ -162,13 +162,13 @@ struct AlbumView: View {
                 }
                 
                 List {
-                    ForEach(Array(album.tracks.enumerated()), id: \.element) { index, element in
+                    ForEach(Array(album.tracklist.enumerated()), id: \.element) { index, element in
                         Button(action: {
                             playQueue.startQueue(from: index, in: album)
                         }) {
                             HStack {
                                 if editingTrackIndex == index {
-                                    TextField(album.titles[index], text: $album.titles[index])
+                                    TextField(element.title, text: $album.tracklist[index].title)
                                         .font(.subheadline)
                                         .focused($trackFieldFocused)
                                         .onAppear {
@@ -176,13 +176,13 @@ struct AlbumView: View {
                                         }
                                 }
                                 else {
-                                    Text(album.titles[index])
+                                    Text(element.title)
                                         .font(.subheadline)
                                         .lineLimit(1)
                                         .truncationMode(.tail)
                                 }
                                 Spacer()
-                                Text(Utils.shared.getTrackDuration(from: element))
+                                Text(Utils.shared.getTrackDuration(from: element.path))
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
                                 
@@ -199,15 +199,20 @@ struct AlbumView: View {
                                 else {
                                     Menu {
                                         Button(action: {
-                                            trackToAdd = Track(artist: album.artist, title: album.titles[index], artwork: album.artwork, path: album.tracks[index])
+                                            trackToAdd = Track(artist: album.artist,
+                                                               title: element.title,
+                                                               artwork: album.artwork,
+                                                               smallArtwork: album.smallArtwork,
+                                                               path: element.path)
                                         }) {
                                             Label("Add To Playlist", systemImage: "plus.square")
                                         }
                                         Button(action: {
                                             playQueue.addToQueue(Track(artist: album.artist,
-                                                                       title: album.titles[index],
+                                                                       title: element.title,
                                                                        artwork: album.artwork,
-                                                                       path: element))
+                                                                       smallArtwork: album.smallArtwork,
+                                                                       path: element.path))
                                             withAnimation(.linear(duration: 0.25)) {
                                                 showPopup = "Added to queue"
                                             }
@@ -240,7 +245,7 @@ struct AlbumView: View {
                 }
                 .id(editMode.isEditing)
                 .scrollDisabled(true)
-                .frame(height: CGFloat(120 + album.tracks.count * 62))
+                .frame(height: CGFloat(120 + album.tracklist.count * 62))
                 .environment(\.editMode, $editMode)
                 .listStyle(PlainListStyle())
             }
@@ -322,9 +327,13 @@ struct AlbumView: View {
             .sheet(isPresented: $isImagePickerPresented) {
                 ImagePicker(selectedImage: $newArtwork)
                     .onDisappear() {
-                        let resizedArtwork = Utils.shared.resizeImage(image: newArtwork)
+                        let resizedArtwork = Utils.shared.resizeImage(image: newArtwork, newSize: CGSize(width: 600, height: 600))
+                        let resizedArtworkSmall = Utils.shared.resizeImage(image: newArtwork, newSize: CGSize(width: 100, height: 100))
                         album.artwork = nil
-                        album.artwork = Utils.shared.copyImageToDocuments(artwork: resizedArtwork, directory: album.directory)
+                        album.smallArtwork = nil
+                        let tuple = Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: album.directory)
+                        album.artwork = tuple.first
+                        album.smallArtwork = tuple.last
                         AlbumManager.shared.replaceAlbum(album)
                     }
             }
@@ -369,13 +378,12 @@ struct AlbumView: View {
     }
     
     private func deleteFile(at offsets: IndexSet) {
-        markedForDeletion.append(album.tracks[offsets.first!])
-        album.tracks.remove(atOffsets: offsets)
-        album.titles.remove(atOffsets: offsets)
+        markedForDeletion.append(album.tracklist[offsets.first!])
+        album.tracklist.remove(atOffsets: offsets)
     }
     
     private func confirmChanges() {
-        deleteFilesFromDocuments(filePaths: markedForDeletion)
+        deleteFilesFromDocuments(filePaths: markedForDeletion.map { $0.path })
         AlbumManager.shared.replaceAlbum(album)
         editMode = .inactive
     }
@@ -396,8 +404,7 @@ struct AlbumView: View {
     }
 
     private func moveFile(from source: IndexSet, to destination: Int) {
-        album.tracks.move(fromOffsets: source, toOffset: destination)
-        album.titles.move(fromOffsets: source, toOffset: destination)
+        album.tracklist.move(fromOffsets: source, toOffset: destination)
     }
     
     private func deleteFilesFromDocuments(filePaths: [String]) {
@@ -446,9 +453,11 @@ struct AlbumView: View {
         case .success(let urls):
             urls.map { $0.startAccessingSecurityScopedResource() }
             let filePaths = copyFilesToDocuments(sourceURLs: urls, name: album.name)
-            album.tracks.append(contentsOf: filePaths)
-            album.titles.append(contentsOf: filePaths.map { URL(fileURLWithPath: $0)
-                .deletingPathExtension().lastPathComponent })
+            let newTracks = filePaths.map { Track(artist: album.artist,
+                                                  artwork: album.artwork,
+                                                  smallArtwork: album.smallArtwork,
+                                                  path: $0) }
+            album.tracklist.append(contentsOf: newTracks)
             AlbumManager.shared.replaceAlbum(album)
         case .failure(let error):
             print("File selection error: \(error.localizedDescription)")

@@ -13,23 +13,26 @@ struct Track: Codable, Identifiable, Hashable {
     var artist: String
     var title: String
     var artwork: String?
+    var smallArtwork: String?
     var path: String
     var duration: String
     
-    init(artist: String, artwork: String?, path: String) {
+    init(artist: String, artwork: String?, smallArtwork: String?, path: String) {
         self.id = UUID()
         self.artist = artist
         self.title = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
         self.artwork = artwork
+        self.smallArtwork = smallArtwork
         self.path = path
         self.duration = Utils.shared.getTrackDuration(from: path)
     }
     
-    init(artist: String, title: String, artwork: String?, path: String) {
+    init(artist: String, title: String, artwork: String?, smallArtwork: String?, path: String) {
         self.id = UUID()
         self.artist = artist
         self.title = title
         self.artwork = artwork
+        self.smallArtwork = smallArtwork
         self.path = path
         self.duration = Utils.shared.getTrackDuration(from: path)
     }

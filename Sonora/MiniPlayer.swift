@@ -15,7 +15,7 @@ struct MiniPlayer: View {
     var body: some View {
         HStack {
             if let currentTrack = playQueue.currentTrack {
-                if let artwork = Utils.shared.loadImageFromDocuments(filePath: currentTrack.artwork) {
+                if let artwork = Utils.shared.loadImageFromDocuments(filePath: currentTrack.smallArtwork) {
                     Image(uiImage: artwork)
                         .resizable()
                         .scaledToFit()
