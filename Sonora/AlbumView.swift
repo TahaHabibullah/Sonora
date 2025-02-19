@@ -13,13 +13,17 @@ struct AlbumView: View {
     @State private var isFilePickerPresented = false
     @State private var isImagePickerPresented = false
     @State private var isAddToPlaylistPresented = false
+    @State private var isFilePickerImagesPresented = false
+    @State private var showImportOptions = false
     @State private var showDeleteConfirmation = false
     @State private var editMode: EditMode = .inactive
     @State private var isEditingName = false
     @State private var isEditingArtists = false
     @State private var editingTrackIndex: Int? = nil
     @State private var trackToAdd: Track? = nil
+    @State private var newTitle: String = ""
     @State private var newArtwork: UIImage? = nil
+    @State private var artworkUrl: URL?
     @State private var markedForDeletion: [Track] = []
     @State private var showPopup: String = ""
     @State var album: Album
@@ -168,10 +172,11 @@ struct AlbumView: View {
                         }) {
                             HStack {
                                 if editingTrackIndex == index {
-                                    TextField(element.title, text: $album.tracklist[index].title)
+                                    TextField(element.title, text: $newTitle)
                                         .font(.subheadline)
                                         .focused($trackFieldFocused)
                                         .onAppear {
+                                            newTitle = element.title
                                             trackFieldFocused = true
                                         }
                                 }
@@ -188,8 +193,8 @@ struct AlbumView: View {
                                 
                                 if editingTrackIndex == index {
                                     Button(action: {
+                                        album.tracklist[index].title = newTitle
                                         confirmTrackChanges()
-                                        editingTrackIndex = nil
                                     }) {
                                         Image(systemName: "checkmark")
                                             .frame(width: 35, height: 50)
@@ -249,6 +254,15 @@ struct AlbumView: View {
                 .environment(\.editMode, $editMode)
                 .listStyle(PlainListStyle())
             }
+            .confirmationDialog("", isPresented: $showImportOptions, titleVisibility: .hidden) {
+                Button("Import From Photo Library") {
+                    isImagePickerPresented = true
+                }
+                Button("Import From Files") {
+                    isFilePickerImagesPresented = true
+                }
+                Button("Cancel", role: .cancel) {}
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if editMode.isEditing || isEditingName || isEditingArtists {
@@ -275,7 +289,7 @@ struct AlbumView: View {
                                 Label("Add Files to Album", systemImage: "music.note.list")
                             }
                             Button(action: {
-                                isImagePickerPresented = true
+                                showImportOptions = true
                             }) {
                                 Label("Replace Album Artwork", systemImage: "photo")
                             }
@@ -309,7 +323,7 @@ struct AlbumView: View {
                         .simultaneousGesture(TapGesture().onEnded {
                             haptics.impactOccurred()
                         })
-                        .confirmationDialog("Are you sure you want to delete this playlist?",
+                        .confirmationDialog("Are you sure you want to delete this album?",
                                             isPresented: $showDeleteConfirmation,
                                             titleVisibility: .visible) {
                             Button("Delete", role: .destructive) {
@@ -339,6 +353,31 @@ struct AlbumView: View {
             }
             .sheet(item: $trackToAdd) { track in
                 AddToPlaylistView(showPopup: $showPopup, track: track)
+            }
+            .sheet(isPresented: $isFilePickerImagesPresented) {
+                ImageDocumentPicker(imageURL: $artworkUrl)
+                    .onDisappear {
+                        do {
+                            if let url = artworkUrl {
+                                guard url.startAccessingSecurityScopedResource() else { return }
+                                if let imageData = try? Data(contentsOf: url),
+                                    let image = UIImage(data: imageData) {
+                                
+                                    let resizedArtwork = Utils.shared.resizeImage(image: image, newSize: CGSize(width: 600, height: 600))
+                                    let resizedArtworkSmall = Utils.shared.resizeImage(image: image, newSize: CGSize(width: 100, height: 100))
+                                    album.artwork = nil
+                                    album.smallArtwork = nil
+                                    let tuple = Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: album.directory)
+                                    album.artwork = tuple.first
+                                    album.smallArtwork = tuple.last
+                                    AlbumManager.shared.replaceAlbum(album)
+                                }
+                                url.stopAccessingSecurityScopedResource()
+                            }
+                        } catch {
+                            print("File selection error: \(error.localizedDescription)")
+                        }
+                    }
             }
             .fileImporter(
                 isPresented: $isFilePickerPresented,
@@ -445,6 +484,7 @@ struct AlbumView: View {
                 print("Unable to copy file: \(error.localizedDescription)")
             }
         }
+        sourceURLs.map { $0.stopAccessingSecurityScopedResource() }
         return filePaths
     }
     

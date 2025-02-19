@@ -14,6 +14,8 @@ struct EditTrackView: View {
     var trackIndex: Int?
     @State private var newArtwork: UIImage? = nil
     @State private var isImagePickerPresented = false
+    @State private var isFilePickerImagesPresented = false
+    @State private var showImportOptions = false
     
     init(playlist: Playlist? = nil, track: Track, trackIndex: Int? = nil) {
         self.playlist = playlist
@@ -27,7 +29,7 @@ struct EditTrackView: View {
                 VStack {
                     Button(action: {
                         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                        isImagePickerPresented = true
+                        showImportOptions = true
                     }) {
                         ZStack {
                             if let artwork = newArtwork {
@@ -107,6 +109,15 @@ struct EditTrackView: View {
                     .padding([.leading, .trailing])
                     .padding(.top, 10)
                 }
+                .confirmationDialog("", isPresented: $showImportOptions, titleVisibility: .hidden) {
+                    Button("Import From Photo Library") {
+                        isImagePickerPresented = true
+                    }
+                    Button("Import From Files") {
+                        isFilePickerImagesPresented = true
+                    }
+                    Button("Cancel", role: .cancel) {}
+                }
                 .navigationTitle("Edit Track")
                 .navigationBarTitleDisplayMode(.inline)
                 .navigationBarItems(
@@ -129,10 +140,25 @@ struct EditTrackView: View {
                 .ignoresSafeArea(.keyboard, edges: .bottom)
             }
         }
+        .fileImporter(
+            isPresented: $isFilePickerImagesPresented,
+            allowedContentTypes: [.image]
+        ) { result in
+            do {
+                let url = try result.get()
+                guard url.startAccessingSecurityScopedResource() else { return }
+                if let imageData = try? Data(contentsOf: url),
+                    let image = UIImage(data: imageData) {
+                    newArtwork = image
+                }
+                url.stopAccessingSecurityScopedResource()
+            } catch {
+                print("File selection error: \(error.localizedDescription)")
+            }
+        }
         .sheet(isPresented: $isImagePickerPresented) {
             ImagePicker(selectedImage: $newArtwork)
                 .onDisappear {
-                    ImageCache.shared.removeImage(forKey: track.path)
                     let resizedArtwork = Utils.shared.resizeImage(image: newArtwork, newSize: CGSize(width: 600, height: 600))
                     let resizedArtworkSmall = Utils.shared.resizeImage(image: newArtwork, newSize: CGSize(width: 100, height: 100))
                     let artworkPaths = Utils.shared.copyLooseTrackImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, trackPath: track.path)

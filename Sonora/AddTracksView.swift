@@ -13,7 +13,6 @@ struct AddTracksView: View {
     @Binding var showPopup: String
     @State var selectedFiles: [URL]
     @State private var isFilePickerPresented = false
-    @State private var isImagePickerPresented = false
     
     var body: some View {
         NavigationView {
@@ -145,6 +144,7 @@ struct AddTracksView: View {
                 print("Unable to copy file: \(error.localizedDescription)")
             }
         }
+        selectedFiles.map { $0.stopAccessingSecurityScopedResource() }
         return filePaths
     }
 }

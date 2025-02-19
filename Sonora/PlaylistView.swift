@@ -13,6 +13,8 @@ struct PlaylistView: View {
     @EnvironmentObject var playQueue: PlayQueue
     @State private var isTrackPickerPresented = false
     @State private var isImagePickerPresented = false
+    @State private var isFilePickerImagesPresented = false
+    @State private var showImportOptions = false
     @State private var isEditTracklistPresented = false
     @State private var showDeleteConfirmation = false
     @State private var showPopup: String = ""
@@ -237,6 +239,15 @@ struct PlaylistView: View {
             }
             .padding(.bottom, 60)
         }
+        .confirmationDialog("", isPresented: $showImportOptions, titleVisibility: .hidden) {
+            Button("Import From Photo Library") {
+                isImagePickerPresented = true
+            }
+            Button("Import From Files") {
+                isFilePickerImagesPresented = true
+            }
+            Button("Cancel", role: .cancel) {}
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 if isEditingName {
@@ -257,7 +268,7 @@ struct PlaylistView: View {
                             Label("Add Tracks", systemImage: "music.note.list")
                         }
                         Button(action: {
-                            isImagePickerPresented = true
+                            showImportOptions = true
                         }) {
                             Label("Replace Playlist Artwork", systemImage: "photo")
                         }
@@ -286,7 +297,7 @@ struct PlaylistView: View {
                     .simultaneousGesture(TapGesture().onEnded {
                         haptics.impactOccurred()
                     })
-                    .confirmationDialog("Are you sure you want to delete this album?",
+                    .confirmationDialog("Are you sure you want to delete this playlist?",
                                         isPresented: $showDeleteConfirmation,
                                         titleVisibility: .visible) {
                         Button("Delete", role: .destructive) {
@@ -326,6 +337,24 @@ struct PlaylistView: View {
                         }
                     }
                 }
+            }
+        }
+        .fileImporter(
+            isPresented: $isFilePickerImagesPresented,
+            allowedContentTypes: [.image]
+        ) { result in
+            do {
+                let url = try result.get()
+                guard url.startAccessingSecurityScopedResource() else { return }
+                if let imageData = try? Data(contentsOf: url),
+                    let image = UIImage(data: imageData) {
+                    let resizedArtwork = Utils.shared.resizeImage(image: image, newSize: CGSize(width: 400, height: 400))
+                    playlist.replaceArtwork(resizedArtwork!)
+                    PlaylistManager.shared.replacePlaylist(playlist)
+                }
+                url.stopAccessingSecurityScopedResource()
+            } catch {
+                print("File selection error: \(error.localizedDescription)")
             }
         }
         .sheet(isPresented: $isImagePickerPresented) {

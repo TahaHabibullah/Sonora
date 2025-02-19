@@ -15,9 +15,10 @@ struct AddAlbumView: View {
     @State private var artist: String = ""
     @State private var albumArtwork: UIImage? = nil
     @State private var selectedFiles: [URL] = []
-    @State private var isFilePickerPresented = false
+    @State private var isFilePickerAudioPresented = false
+    @State private var isFilePickerImagesPresented = false
     @State private var isImagePickerPresented = false
-    @State private var originalFiles: [URL] = []
+    @State private var showImportOptions = false
 
     var body: some View {
         NavigationView {
@@ -25,7 +26,7 @@ struct AddAlbumView: View {
                 ScrollView {
                     Button(action: {
                         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                        isImagePickerPresented = true
+                        showImportOptions = true
                     }) {
                         ZStack {
                             if let albumArtwork = albumArtwork {
@@ -103,7 +104,7 @@ struct AddAlbumView: View {
                     List {
                         Button(action: {
                             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                            isFilePickerPresented = true
+                            isFilePickerAudioPresented = true
                         }) {
                             HStack {
                                 Image(systemName: "plus.circle.fill")
@@ -134,6 +135,15 @@ struct AddAlbumView: View {
                     .listStyle(PlainListStyle())
                     .scrollDisabled(true)
                     .frame(height: CGFloat(100 + selectedFiles.count * 45))
+                }
+                .confirmationDialog("", isPresented: $showImportOptions, titleVisibility: .hidden) {
+                    Button("Import From Photo Library") {
+                        isImagePickerPresented = true
+                    }
+                    Button("Import From Files") {
+                        isFilePickerImagesPresented = true
+                    }
+                    Button("Cancel", role: .cancel) {}
                 }
                 .navigationTitle("New Album")
                 .navigationBarTitleDisplayMode(.inline)
@@ -167,9 +177,25 @@ struct AddAlbumView: View {
                 )
                 .ignoresSafeArea(.keyboard, edges: .bottom)
             }
+            .fileImporter(
+                isPresented: $isFilePickerImagesPresented,
+                allowedContentTypes: [.image]
+            ) { result in
+                do {
+                    let url = try result.get()
+                    guard url.startAccessingSecurityScopedResource() else { return }
+                    if let imageData = try? Data(contentsOf: url),
+                        let image = UIImage(data: imageData) {
+                        albumArtwork = image
+                    }
+                    url.stopAccessingSecurityScopedResource()
+                } catch {
+                    print("File selection error: \(error.localizedDescription)")
+                }
+            }
         }
         .fileImporter(
-            isPresented: $isFilePickerPresented,
+            isPresented: $isFilePickerAudioPresented,
             allowedContentTypes: [.audio],
             allowsMultipleSelection: true
         ) { result in
@@ -191,7 +217,7 @@ struct AddAlbumView: View {
     private func handleFileSelection(result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
-            urls.map { $0.startAccessingSecurityScopedResource() }
+            urls.map { guard $0.startAccessingSecurityScopedResource() else { return } }
             selectedFiles.append(contentsOf: urls)
         case .failure(let error):
             print("File selection error: \(error.localizedDescription)")
@@ -250,6 +276,7 @@ struct AddAlbumView: View {
             }
         }
         let result = (first: filePaths, last: albumDirectory.lastPathComponent)
+        selectedFiles.map { $0.stopAccessingSecurityScopedResource() }
         return result
     }
 }

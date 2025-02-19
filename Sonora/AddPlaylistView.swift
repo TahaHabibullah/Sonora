@@ -13,8 +13,10 @@ struct AddPlaylistView: View {
     @Binding var showPopup: String
     @State private var artwork: UIImage? = nil
     @State private var playlistName: String = ""
+    @State private var isFilePickerImagesPresented = false
     @State private var isImagePickerPresented = false
     @State private var isTrackPickerPresented = false
+    @State private var showImportOptions = false
     @State var selectedTracks: [Track] = []
     
     var body: some View {
@@ -23,7 +25,7 @@ struct AddPlaylistView: View {
                 ScrollView {
                     Button(action: {
                         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                        isImagePickerPresented = true
+                        showImportOptions = true
                     }) {
                         ZStack {
                             if let artwork = artwork {
@@ -128,6 +130,15 @@ struct AddPlaylistView: View {
                     .listStyle(PlainListStyle())
                     .scrollDisabled(true)
                 }
+                .confirmationDialog("", isPresented: $showImportOptions, titleVisibility: .hidden) {
+                    Button("Import From Photo Library") {
+                        isImagePickerPresented = true
+                    }
+                    Button("Import From Files") {
+                        isFilePickerImagesPresented = true
+                    }
+                    Button("Cancel", role: .cancel) {}
+                }
                 .navigationTitle("New Playlist")
                 .navigationBarTitleDisplayMode(.inline)
                 .navigationBarItems(
@@ -145,6 +156,22 @@ struct AddPlaylistView: View {
                     .foregroundColor(.blue)
                 )
                 .ignoresSafeArea(.keyboard, edges: .bottom)
+            }
+        }
+        .fileImporter(
+            isPresented: $isFilePickerImagesPresented,
+            allowedContentTypes: [.image]
+        ) { result in
+            do {
+                let url = try result.get()
+                guard url.startAccessingSecurityScopedResource() else { return }
+                if let imageData = try? Data(contentsOf: url),
+                    let image = UIImage(data: imageData) {
+                    artwork = image
+                }
+                url.stopAccessingSecurityScopedResource()
+            } catch {
+                print("File selection error: \(error.localizedDescription)")
             }
         }
         .sheet(isPresented: $isImagePickerPresented) {
