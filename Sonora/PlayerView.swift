@@ -8,6 +8,7 @@
 import SwiftUI
 import AVFoundation
 import MediaPlayer
+import MarqueeText
 
 struct PlayerView: View {
     @EnvironmentObject var playQueue: PlayQueue
@@ -20,6 +21,10 @@ struct PlayerView: View {
     let impactHaptics = UIImpactFeedbackGenerator(style: .light)
     
     var body: some View {
+        let baseFont = UIFont.preferredFont(forTextStyle: .title2)
+        let descriptor = baseFont.fontDescriptor.withSymbolicTraits(.traitBold)
+        let boldFont = UIFont(descriptor: descriptor ?? baseFont.fontDescriptor, size: baseFont.pointSize)
+        
         let screenHeight = UIScreen.main.bounds.height
         let imageSize: CGFloat = screenHeight > 812 ? 300 : screenHeight > 736 ? 250 : 200
             
@@ -36,10 +41,14 @@ struct PlayerView: View {
                 
                 VStack(spacing: 0) {
                     if let currentTrack = playQueue.currentTrack {
-                        Text(playQueue.name)
-                            .font(.headline)
-                            .bold()
-                            .padding()
+                        MarqueeText(text: playQueue.name,
+                                    font: UIFont.preferredFont(forTextStyle: .headline),
+                                    leftFade: 16,
+                                    rightFade: 16,
+                                    startDelay: 3,
+                                    alignment: .center)
+                                    .padding()
+                        
                         if let artwork = Utils.shared.loadImageFromDocuments(filePath: currentTrack.artwork) {
                             Image(uiImage: artwork)
                                 .resizable()
@@ -56,13 +65,20 @@ struct PlayerView: View {
                         }
                         
                         VStack {
-                            Text(currentTrack.title)
-                                .font(.title2)
-                                .bold()
+                            MarqueeText(text: currentTrack.title,
+                                        font: boldFont,
+                                        leftFade: 16,
+                                        rightFade: 16,
+                                        startDelay: 3,
+                                        alignment: .center)
                             
-                            Text(currentTrack.artist)
-                                .font(.headline)
-                                .foregroundColor(.gray)
+                            MarqueeText(text: currentTrack.artist,
+                                        font: UIFont.preferredFont(forTextStyle: .headline),
+                                        leftFade: 16,
+                                        rightFade: 16,
+                                        startDelay: 3,
+                                        alignment: .center)
+                                        .foregroundColor(.gray)
                         }
                         .padding()
                     }

@@ -56,8 +56,9 @@ class AlbumManager {
     
     func replaceAlbum(_ album: Album) {
         var albums = fetchAlbums()
-        albums.removeAll { $0.id == album.id }
-        albums.append(album)
+        guard let albumIndex = albums.firstIndex(where: { $0.id == album.id }) else { return }
+        albums[albumIndex] = album
+        
         if let data = try? JSONEncoder().encode(albums) {
             UserDefaults.standard.set(data, forKey: storageKey)
         }

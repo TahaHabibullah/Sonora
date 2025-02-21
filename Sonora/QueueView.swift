@@ -8,6 +8,7 @@
 import SwiftUI
 import AVFoundation
 import MediaPlayer
+import MarqueeText
 
 struct QueueView: View {
     @EnvironmentObject var playQueue: PlayQueue
@@ -30,10 +31,13 @@ struct QueueView: View {
                         .padding()
                 }
                 Spacer()
-                Text(playQueue.name)
-                    .font(.headline)
-                    .bold()
-                    .padding()
+                MarqueeText(text: playQueue.name,
+                            font: UIFont.preferredFont(forTextStyle: .headline),
+                            leftFade: 16,
+                            rightFade: 16,
+                            startDelay: 3,
+                            alignment: .center)
+                            .padding()
                 Spacer()
                 Text("")
                     .frame(width: 20)
@@ -67,22 +71,21 @@ struct QueueView: View {
                     }
                     
                     VStack(spacing: 0) {
-                        HStack {
-                            Text(currentTrack.title)
-                                .font(.subheadline)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                            Spacer()
-                        }
-                        HStack {
-                            Text(currentTrack.artist)
-                                .font(.subheadline)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                                .foregroundColor(.gray)
-                            Spacer()
-                        }
+                        MarqueeText(text: currentTrack.title,
+                                    font: UIFont.preferredFont(forTextStyle: .subheadline),
+                                    leftFade: 16,
+                                    rightFade: 16,
+                                    startDelay: 3)
+                        
+                        MarqueeText(text: currentTrack.artist,
+                                    font: UIFont.preferredFont(forTextStyle: .subheadline),
+                                    leftFade: 16,
+                                    rightFade: 16,
+                                    startDelay: 3)
+                                    .foregroundColor(.gray)
                     }
+                    .padding(.leading, -10)
+                    .padding(.trailing, 10)
                 }
                 .padding(.bottom, 10)
                 
@@ -142,7 +145,7 @@ struct QueueView: View {
                     
                     if !playQueue.tracklist.isEmpty {
                         Section {
-                            ForEach(Array(playQueue.tracklist[(currentIndex+1)...].enumerated()), id: \.element) { index, element in
+                            ForEach(Array(playQueue.tracklist.dropFirst(currentIndex+1).prefix(50).enumerated()), id: \.element) { index, element in
                                 Button(action: {
                                     playQueue.skipToTrack(currentIndex+1 + index)
                                 }) {

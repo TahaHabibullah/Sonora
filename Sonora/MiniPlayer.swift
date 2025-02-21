@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import MarqueeText
 
 struct MiniPlayer: View {
     @EnvironmentObject var playQueue: PlayQueue
@@ -28,11 +29,12 @@ struct MiniPlayer: View {
                         .background(Color.gray.opacity(0.5))
                 }
                 
-                Text(currentTrack.title)
-                    .padding(.leading, 10)
-                    .font(.headline)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                MarqueeText(text: currentTrack.title,
+                            font: UIFont.preferredFont(forTextStyle: .headline),
+                            leftFade: 16,
+                            rightFade: 16,
+                            startDelay: 3)
+                            .padding(.leading, 10)
             }
             else {
                 Image(systemName: "music.note.list")
@@ -86,6 +88,14 @@ struct MiniPlayer: View {
         .background(.ultraThinMaterial)
         .contentShape(Rectangle())
         .accentColor(.gray)
+        .gesture(
+            DragGesture(minimumDistance: 20)
+                .onEnded { value in
+                    if value.translation.height < -20 {
+                        isPlayerViewPresented = true
+                    }
+                }
+        )
         .onTapGesture {
             isPlayerViewPresented = true
         }

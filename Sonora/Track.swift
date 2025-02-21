@@ -60,8 +60,9 @@ class TrackManager {
     
     func replaceTrack(_ track: Track) {
         var tracks = fetchTracks()
-        let trackIndex = tracks.firstIndex { $0.id == track.id }
-        tracks[trackIndex!] = track
+        guard let trackIndex = tracks.firstIndex (where: { $0.id == track.id }) else { return }
+        tracks[trackIndex] = track
+        
         if let data = try? JSONEncoder().encode(tracks) {
             UserDefaults.standard.set(data, forKey: storageKey)
         }

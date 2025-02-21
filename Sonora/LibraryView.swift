@@ -24,7 +24,56 @@ struct LibraryView: View {
     @State private var trackToDelete: Track? = nil
     @State private var trackToAdd: Track? = nil
     @State private var selectedTab: Int = 0
+    @State private var sortOptionAlbum: SortOption = .recentPlayed
+    @State private var sortOptionLooseTracks: SortOption = .firstAdded
     let haptics = UIImpactFeedbackGenerator(style: .light)
+    
+    enum SortOption {
+        case recentPlayed, firstAdded, recentAdded, nameAsc, nameDesc, artistAsc, artistDesc
+    }
+    
+    var sortedAlbums: [Album] {
+        switch sortOptionAlbum {
+        case .recentPlayed:
+            return albums.sorted {
+                guard let date0 = $0.lastPlayed, let date1 = $1.lastPlayed else {
+                    return $0.lastPlayed != nil
+                }
+                return date0 > date1
+            }
+        case .firstAdded:
+            return albums
+        case .recentAdded:
+            return albums.sorted { $0.dateAdded > $1.dateAdded }
+        case .nameAsc:
+            return albums.sorted { $0.name.uppercased() < $1.name.uppercased() }
+        case .nameDesc:
+            return albums.sorted { $0.name.uppercased() > $1.name.uppercased() }
+        case .artistAsc:
+            return albums.sorted { $0.artist.uppercased() < $1.artist.uppercased() }
+        case .artistDesc:
+            return albums.sorted { $0.artist.uppercased() > $1.artist.uppercased() }
+        }
+    }
+    
+    var sortedLooseTracks: [Track] {
+        switch sortOptionLooseTracks {
+        case .recentPlayed:
+            return looseTracks
+        case .firstAdded:
+            return looseTracks
+        case .recentAdded:
+            return looseTracks
+        case .nameAsc:
+            return looseTracks.sorted { $0.title.uppercased() < $1.title.uppercased() }
+        case .nameDesc:
+            return looseTracks.sorted { $0.title.uppercased() > $1.title.uppercased() }
+        case .artistAsc:
+            return looseTracks.sorted { $0.artist.uppercased() < $1.artist.uppercased() }
+        case .artistDesc:
+            return looseTracks.sorted { $0.artist.uppercased() > $1.artist.uppercased() }
+        }
+    }
     
     private let columns = [
         GridItem(.flexible(), spacing: 16),
@@ -46,7 +95,7 @@ struct LibraryView: View {
                 if selectedTab == 0 {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(albums) { album in
+                            ForEach(sortedAlbums) { album in
                                 NavigationLink(destination: AlbumView(album: album)) {
                                     VStack(spacing: 0) {
                                         if let artwork = Utils.shared.loadImageFromDocuments(filePath: album.artwork) {
@@ -56,14 +105,16 @@ struct LibraryView: View {
                                                 .shadow(color: Color.gray.opacity(0.5), radius: 10)
                                                 .animation(nil)
                                         } else {
-                                            Image(systemName: "music.note.list")
-                                                .font(.title)
-                                                .frame(width: 178, height: 178)
-                                                .background(Color.black)
-                                                .foregroundColor(.gray)
-                                                .border(.gray, width: 1)
-                                                .shadow(color: Color.gray.opacity(0.5), radius: 10)
-                                                .animation(nil)
+                                            GeometryReader { geometry in
+                                                Image(systemName: "music.note.list")
+                                                    .font(.title)
+                                                    .frame(width: geometry.size.width, height: geometry.size.height)
+                                                    .background(Color.black)
+                                                    .foregroundColor(.gray)
+                                                    .border(.gray, width: 1)
+                                                    .shadow(color: Color.gray.opacity(0.5), radius: 10)
+                                                    .animation(nil)
+                                            }
                                         }
                                         VStack(spacing: 0) {
                                             if !album.name.isEmpty {
@@ -110,7 +161,7 @@ struct LibraryView: View {
                 else if selectedTab == 1 {
                     ScrollView {
                         LazyVStack {
-                            ForEach(looseTracks) { track in
+                            ForEach(sortedLooseTracks) { track in
                                 Button(action: {
                                     playQueue.startPlaylistQueue(from: track, in: looseTracks)
                                 }) {
@@ -218,6 +269,160 @@ struct LibraryView: View {
             }
             .navigationTitle("Library")
             .toolbar {
+                if selectedTab == 0 {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Menu {
+                            Button(action: {
+                                sortOptionAlbum = .recentPlayed
+                            }) {
+                                HStack {
+                                    Text("Recently Played")
+                                    Spacer()
+                                    if sortOptionAlbum == .recentPlayed {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: {
+                                sortOptionAlbum = .firstAdded
+                            }) {
+                                HStack {
+                                    Text("First Added")
+                                    Spacer()
+                                    if sortOptionAlbum == .firstAdded {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: {
+                                sortOptionAlbum = .recentAdded
+                            }) {
+                                HStack {
+                                    Text("Recently Added")
+                                    Spacer()
+                                    if sortOptionAlbum == .recentAdded {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: {
+                                sortOptionAlbum = .nameAsc
+                            }) {
+                                HStack {
+                                    Text("Name A-Z")
+                                    Spacer()
+                                    if sortOptionAlbum == .nameAsc {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: {
+                                sortOptionAlbum = .nameDesc
+                            }) {
+                                HStack {
+                                    Text("Name Z-A")
+                                    Spacer()
+                                    if sortOptionAlbum == .nameDesc {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: {
+                                sortOptionAlbum = .artistAsc
+                            }) {
+                                HStack {
+                                    Text("Artist A-Z")
+                                    Spacer()
+                                    if sortOptionAlbum == .artistAsc {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: {
+                                sortOptionAlbum = .artistDesc
+                            }) {
+                                HStack {
+                                    Text("Artist Z-A")
+                                    Spacer()
+                                    if sortOptionAlbum == .artistDesc {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                        }
+                        .simultaneousGesture(TapGesture().onEnded {
+                            haptics.impactOccurred()
+                        })
+                    }
+                }
+                else if selectedTab == 1 {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Menu {
+                            Button(action: {
+                                sortOptionLooseTracks = .firstAdded
+                            }) {
+                                HStack {
+                                    Text("First Added")
+                                    Spacer()
+                                    if sortOptionLooseTracks == .firstAdded {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: {
+                                sortOptionLooseTracks = .nameAsc
+                            }) {
+                                HStack {
+                                    Text("Title A-Z")
+                                    Spacer()
+                                    if sortOptionLooseTracks == .nameAsc {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: {
+                                sortOptionLooseTracks = .nameDesc
+                            }) {
+                                HStack {
+                                    Text("Title Z-A")
+                                    Spacer()
+                                    if sortOptionAlbum == .nameDesc {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: {
+                                sortOptionLooseTracks = .artistAsc
+                            }) {
+                                HStack {
+                                    Text("Artist A-Z")
+                                    Spacer()
+                                    if sortOptionLooseTracks == .artistAsc {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: {
+                                sortOptionLooseTracks = .artistDesc
+                            }) {
+                                HStack {
+                                    Text("Artist Z-A")
+                                    Spacer()
+                                    if sortOptionLooseTracks == .artistDesc {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                        }
+                        .simultaneousGesture(TapGesture().onEnded {
+                            haptics.impactOccurred()
+                        })
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: {

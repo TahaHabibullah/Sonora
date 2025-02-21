@@ -30,9 +30,9 @@ struct PlaylistsView: View {
         case .recentAdded:
             return playlists.sorted { $0.dateAdded > $1.dateAdded }
         case .nameAsc:
-            return playlists.sorted { $0.name < $1.name }
+            return playlists.sorted { $0.name.uppercased() < $1.name.uppercased() }
         case .nameDesc:
-            return playlists.sorted { $0.name > $1.name }
+            return playlists.sorted { $0.name.uppercased() > $1.name.uppercased() }
         }
     }
     

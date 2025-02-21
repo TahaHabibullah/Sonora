@@ -69,8 +69,9 @@ class PlaylistManager {
     
     func replacePlaylist(_ playlist: Playlist) {
         var playlists = fetchPlaylists()
-        let playlistIndex = playlists.firstIndex { $0.id == playlist.id }
-        playlists[playlistIndex!] = playlist
+        guard let playlistIndex = playlists.firstIndex(where: { $0.id == playlist.id }) else { return }
+        playlists[playlistIndex] = playlist
+        
         if let data = try? JSONEncoder().encode(playlists) {
             UserDefaults.standard.set(data, forKey: storageKey)
         }

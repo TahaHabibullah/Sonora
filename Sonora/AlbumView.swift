@@ -22,6 +22,7 @@ struct AlbumView: View {
     @State private var editingTrackIndex: Int? = nil
     @State private var trackToAdd: Track? = nil
     @State private var newTitle: String = ""
+    @State private var newArtist: String = ""
     @State private var newArtwork: UIImage? = nil
     @State private var artworkUrl: URL?
     @State private var markedForDeletion: [Track] = []
@@ -87,7 +88,7 @@ struct AlbumView: View {
                     }
                 }
                 if isEditingArtists {
-                    TextField(album.artist, text: $album.artist)
+                    TextField(album.artist, text: $newArtist)
                         .font(.headline)
                         .foregroundColor(.gray)
                         .padding(.bottom, 10)
@@ -95,6 +96,7 @@ struct AlbumView: View {
                         .multilineTextAlignment(.center)
                         .focused($artistFieldFocused)
                         .onAppear {
+                            newArtist = album.artist
                             artistFieldFocused = true
                         }
                 }
@@ -122,6 +124,8 @@ struct AlbumView: View {
                         Button(action: {
                             haptics.impactOccurred()
                             playQueue.startQueue(from: 0, in: album)
+                            album.lastPlayed = Date.now
+                            AlbumManager.shared.replaceAlbum(album)
                         }) {
                             HStack {
                                 Text("Play")
@@ -144,6 +148,8 @@ struct AlbumView: View {
                         Button(action: {
                             haptics.impactOccurred()
                             playQueue.startShuffledQueue(from: album)
+                            album.lastPlayed = Date.now
+                            AlbumManager.shared.replaceAlbum(album)
                         }) {
                             HStack {
                                 Text("Shuffle")
@@ -169,6 +175,8 @@ struct AlbumView: View {
                     ForEach(Array(album.tracklist.enumerated()), id: \.element) { index, element in
                         Button(action: {
                             playQueue.startQueue(from: index, in: album)
+                            album.lastPlayed = Date.now
+                            AlbumManager.shared.replaceAlbum(album)
                         }) {
                             HStack {
                                 if editingTrackIndex == index {
@@ -433,6 +441,10 @@ struct AlbumView: View {
     }
     
     private func confirmArtistsChanges() {
+        album.artist = newArtist
+        for i in 0..<album.tracklist.count {
+            album.tracklist[i].artist = newArtist
+        }
         AlbumManager.shared.replaceAlbum(album)
         isEditingArtists = false
     }
