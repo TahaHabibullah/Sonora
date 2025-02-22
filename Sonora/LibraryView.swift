@@ -81,6 +81,9 @@ struct LibraryView: View {
     ]
     
     var body: some View {
+        let screenWidth = UIScreen.main.bounds.width
+        let gridItemSize = (screenWidth - 48) / 2
+        
         NavigationStack {
             Picker(selection: $selectedTab, label: Text("")) {
                 Text("Albums").tag(0)
@@ -105,16 +108,14 @@ struct LibraryView: View {
                                                 .shadow(color: Color.gray.opacity(0.5), radius: 10)
                                                 .animation(nil)
                                         } else {
-                                            GeometryReader { geometry in
-                                                Image(systemName: "music.note.list")
-                                                    .font(.title)
-                                                    .frame(width: geometry.size.width, height: geometry.size.height)
-                                                    .background(Color.black)
-                                                    .foregroundColor(.gray)
-                                                    .border(.gray, width: 1)
-                                                    .shadow(color: Color.gray.opacity(0.5), radius: 10)
-                                                    .animation(nil)
-                                            }
+                                            Image(systemName: "music.note.list")
+                                                .font(.title)
+                                                .frame(width: gridItemSize, height: gridItemSize)
+                                                .background(Color.black)
+                                                .foregroundColor(.gray)
+                                                .border(.gray, width: 1)
+                                                .shadow(color: Color.gray.opacity(0.5), radius: 10)
+                                                .animation(nil)
                                         }
                                         VStack(spacing: 0) {
                                             if !album.name.isEmpty {
@@ -167,10 +168,22 @@ struct LibraryView: View {
                                 }) {
                                     HStack {
                                         if let artworkPath = track.smallArtwork {
-                                            CachedImageView(path: artworkPath)
-                                                .frame(width: 50, height: 50)
-                                                .padding(.leading, 15)
-                                                .animation(nil)
+                                            if let artwork = Utils.shared.loadImageFromDocuments(filePath: artworkPath) {
+                                                Image(uiImage: artwork)
+                                                    .resizable()
+                                                    .scaledToFit()
+                                                    .frame(width: 50, height: 50)
+                                                    .padding(.leading, 15)
+                                                    .animation(nil)
+                                            }
+                                            else {
+                                                Image(systemName: "music.note.list")
+                                                    .font(.subheadline)
+                                                    .frame(width: 50, height: 50)
+                                                    .background(Color.gray.opacity(0.5))
+                                                    .padding(.leading, 15)
+                                                    .animation(nil)
+                                            }
                                         }
                                         else {
                                             Image(systemName: "music.note.list")
@@ -500,6 +513,14 @@ struct LibraryView: View {
                 EditTrackView(track: track)
                     .onDisappear {
                         looseTracks = TrackManager.shared.fetchTracks()
+                        if let index = looseTracks.firstIndex(where: { $0.id == track.id }) {
+                            let newArtwork = looseTracks[index].artwork
+                            let newArtworkSmall = looseTracks[index].smallArtwork
+                            looseTracks[index].artwork = nil
+                            looseTracks[index].smallArtwork = nil
+                            looseTracks[index].artwork = newArtwork
+                            looseTracks[index].smallArtwork = newArtworkSmall
+                        }
                     }
             }
             .sheet(item: $trackToAdd) { track in

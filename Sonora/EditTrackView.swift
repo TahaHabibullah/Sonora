@@ -150,6 +150,11 @@ struct EditTrackView: View {
                 if let imageData = try? Data(contentsOf: url),
                     let image = UIImage(data: imageData) {
                     newArtwork = image
+                    let resizedArtwork = Utils.shared.resizeImage(image: image, newSize: CGSize(width: 600, height: 600))
+                    let resizedArtworkSmall = Utils.shared.resizeImage(image: image, newSize: CGSize(width: 100, height: 100))
+                    let tuple = Utils.shared.copyLooseTrackImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, trackPath: track.path)
+                    track.artwork = tuple.first
+                    track.smallArtwork = tuple.last
                 }
                 url.stopAccessingSecurityScopedResource()
             } catch {
@@ -159,11 +164,12 @@ struct EditTrackView: View {
         .sheet(isPresented: $isImagePickerPresented) {
             ImagePicker(selectedImage: $newArtwork)
                 .onDisappear {
+                    guard newArtwork != nil else { return }
                     let resizedArtwork = Utils.shared.resizeImage(image: newArtwork, newSize: CGSize(width: 600, height: 600))
                     let resizedArtworkSmall = Utils.shared.resizeImage(image: newArtwork, newSize: CGSize(width: 100, height: 100))
-                    let artworkPaths = Utils.shared.copyLooseTrackImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, trackPath: track.path)
-                    track.artwork = artworkPaths.first
-                    track.smallArtwork = artworkPaths.last
+                    let tuple = Utils.shared.copyLooseTrackImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, trackPath: track.path)
+                    track.artwork = tuple.first
+                    track.smallArtwork = tuple.last
                 }
         }
     }

@@ -192,6 +192,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
             let trackPath = tracklist[currentIndex!].path
             let trackURL = documentsDirectory.appendingPathComponent(trackPath)
+            try fileManager.setAttributes([.protectionKey: FileProtectionType.none], ofItemAtPath: trackURL.path)
             
             audioPlayer = try AVAudioPlayer(contentsOf: trackURL)
             audioPlayer?.delegate = self

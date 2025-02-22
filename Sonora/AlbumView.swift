@@ -349,11 +349,21 @@ struct AlbumView: View {
             .sheet(isPresented: $isImagePickerPresented) {
                 ImagePicker(selectedImage: $newArtwork)
                     .onDisappear() {
+                        guard newArtwork != nil else { return }
                         let resizedArtwork = Utils.shared.resizeImage(image: newArtwork, newSize: CGSize(width: 600, height: 600))
                         let resizedArtworkSmall = Utils.shared.resizeImage(image: newArtwork, newSize: CGSize(width: 100, height: 100))
-                        album.artwork = nil
-                        album.smallArtwork = nil
                         let tuple = Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: album.directory)
+                        
+                        if album.artwork == nil {
+                            for i in 0..<album.tracklist.count {
+                                album.tracklist[i].artwork = tuple.first
+                                album.tracklist[i].smallArtwork = tuple.last
+                            }
+                        }
+                        else {
+                            album.artwork = nil
+                            album.smallArtwork = nil
+                        }
                         album.artwork = tuple.first
                         album.smallArtwork = tuple.last
                         AlbumManager.shared.replaceAlbum(album)
@@ -365,25 +375,30 @@ struct AlbumView: View {
             .sheet(isPresented: $isFilePickerImagesPresented) {
                 ImageDocumentPicker(imageURL: $artworkUrl)
                     .onDisappear {
-                        do {
-                            if let url = artworkUrl {
-                                guard url.startAccessingSecurityScopedResource() else { return }
-                                if let imageData = try? Data(contentsOf: url),
-                                    let image = UIImage(data: imageData) {
+                        if let url = artworkUrl {
+                            guard url.startAccessingSecurityScopedResource() else { return }
+                            if let imageData = try? Data(contentsOf: url),
+                                let image = UIImage(data: imageData) {
+                            
+                                let resizedArtwork = Utils.shared.resizeImage(image: image, newSize: CGSize(width: 600, height: 600))
+                                let resizedArtworkSmall = Utils.shared.resizeImage(image: image, newSize: CGSize(width: 100, height: 100))
+                                let tuple = Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: album.directory)
                                 
-                                    let resizedArtwork = Utils.shared.resizeImage(image: image, newSize: CGSize(width: 600, height: 600))
-                                    let resizedArtworkSmall = Utils.shared.resizeImage(image: image, newSize: CGSize(width: 100, height: 100))
+                                if album.artwork == nil {
+                                    for i in 0..<album.tracklist.count {
+                                        album.tracklist[i].artwork = tuple.first
+                                        album.tracklist[i].smallArtwork = tuple.last
+                                    }
+                                }
+                                else {
                                     album.artwork = nil
                                     album.smallArtwork = nil
-                                    let tuple = Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: album.directory)
-                                    album.artwork = tuple.first
-                                    album.smallArtwork = tuple.last
-                                    AlbumManager.shared.replaceAlbum(album)
                                 }
-                                url.stopAccessingSecurityScopedResource()
+                                album.artwork = tuple.first
+                                album.smallArtwork = tuple.last
+                                AlbumManager.shared.replaceAlbum(album)
                             }
-                        } catch {
-                            print("File selection error: \(error.localizedDescription)")
+                            url.stopAccessingSecurityScopedResource()
                         }
                     }
             }

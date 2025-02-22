@@ -91,9 +91,12 @@ class TrackManager {
         
         do {
             if let path = artworkPath {
+                let smallPath = Utils.shared.getSmallArtworkPath(from: path)
                 let artworkURL = documentsDirectory.appendingPathComponent(path)
+                let smallArtworkURL = documentsDirectory.appendingPathComponent(smallPath!)
                 if fileManager.fileExists(atPath: artworkURL.path) {
                     try fileManager.removeItem(at: artworkURL)
+                    try fileManager.removeItem(at: smallArtworkURL)
                 }
             }
         } catch {

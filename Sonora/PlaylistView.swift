@@ -386,6 +386,12 @@ struct PlaylistView: View {
                 EditTrackView(playlist: playlist, track: track, trackIndex: index)
                     .onDisappear {
                         playlist = PlaylistManager.shared.fetchPlaylist(playlist.id)
+                        let newArtwork = playlist.tracklist[index].artwork
+                        let newArtworkSmall = playlist.tracklist[index].smallArtwork
+                        playlist.tracklist[index].artwork = nil
+                        playlist.tracklist[index].smallArtwork = nil
+                        playlist.tracklist[index].artwork = newArtwork
+                        playlist.tracklist[index].smallArtwork = newArtworkSmall
                     }
             }
         }
