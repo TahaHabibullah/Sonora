@@ -12,12 +12,12 @@ struct Track: Codable, Identifiable, Hashable {
     let id: UUID
     var artist: String
     var title: String
-    var artwork: String?
-    var smallArtwork: String?
+    var artwork: String
+    var smallArtwork: String
     var path: String
     var duration: String
     
-    init(artist: String, artwork: String?, smallArtwork: String?, path: String) {
+    init(artist: String, artwork: String, smallArtwork: String, path: String) {
         self.id = UUID()
         self.artist = artist
         self.title = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
@@ -27,7 +27,7 @@ struct Track: Codable, Identifiable, Hashable {
         self.duration = Utils.shared.getTrackDuration(from: path)
     }
     
-    init(artist: String, title: String, artwork: String?, smallArtwork: String?, path: String) {
+    init(artist: String, title: String, artwork: String, smallArtwork: String, path: String) {
         self.id = UUID()
         self.artist = artist
         self.title = title
@@ -77,7 +77,7 @@ class TrackManager {
         }
     }
     
-    private func deleteTrackFromDirectory(trackPath: String, artworkPath: String?) {
+    private func deleteTrackFromDirectory(trackPath: String, artworkPath: String) {
         let fileManager = FileManager.default
         let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         do {
@@ -90,17 +90,15 @@ class TrackManager {
         }
         
         do {
-            if let path = artworkPath {
-                let smallPath = Utils.shared.getSmallArtworkPath(from: path)
-                let artworkURL = documentsDirectory.appendingPathComponent(path)
-                let smallArtworkURL = documentsDirectory.appendingPathComponent(smallPath!)
-                if fileManager.fileExists(atPath: artworkURL.path) {
-                    try fileManager.removeItem(at: artworkURL)
-                    try fileManager.removeItem(at: smallArtworkURL)
-                }
+            let smallPath = Utils.shared.getSmallArtworkPath(from: artworkPath)
+            let artworkURL = documentsDirectory.appendingPathComponent(artworkPath)
+            let smallArtworkURL = documentsDirectory.appendingPathComponent(smallPath)
+            if fileManager.fileExists(atPath: artworkURL.path) {
+                try fileManager.removeItem(at: artworkURL)
+                try fileManager.removeItem(at: smallArtworkURL)
             }
         } catch {
-            print("Failed to delete file at path: \(artworkPath != nil ? artworkPath! : "No artwork path")")
+            print("Failed to delete file at path: \(artworkPath)")
         }
     }
 }

@@ -167,23 +167,13 @@ struct LibraryView: View {
                                     playQueue.startPlaylistQueue(from: track, in: looseTracks)
                                 }) {
                                     HStack {
-                                        if let artworkPath = track.smallArtwork {
-                                            if let artwork = Utils.shared.loadImageFromDocuments(filePath: artworkPath) {
-                                                Image(uiImage: artwork)
-                                                    .resizable()
-                                                    .scaledToFit()
-                                                    .frame(width: 50, height: 50)
-                                                    .padding(.leading, 15)
-                                                    .animation(nil)
-                                            }
-                                            else {
-                                                Image(systemName: "music.note.list")
-                                                    .font(.subheadline)
-                                                    .frame(width: 50, height: 50)
-                                                    .background(Color.gray.opacity(0.5))
-                                                    .padding(.leading, 15)
-                                                    .animation(nil)
-                                            }
+                                        if let artwork = Utils.shared.loadImageFromDocuments(filePath: track.smallArtwork) {
+                                            Image(uiImage: artwork)
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: 50, height: 50)
+                                                .padding(.leading, 15)
+                                                .animation(nil)
                                         }
                                         else {
                                             Image(systemName: "music.note.list")
@@ -514,12 +504,12 @@ struct LibraryView: View {
                     .onDisappear {
                         looseTracks = TrackManager.shared.fetchTracks()
                         if let index = looseTracks.firstIndex(where: { $0.id == track.id }) {
-                            let newArtwork = looseTracks[index].artwork
-                            let newArtworkSmall = looseTracks[index].smallArtwork
-                            looseTracks[index].artwork = nil
-                            looseTracks[index].smallArtwork = nil
-                            looseTracks[index].artwork = newArtwork
-                            looseTracks[index].smallArtwork = newArtworkSmall
+                            let artwork = looseTracks[index].artwork
+                            let smallArtwork = looseTracks[index].smallArtwork
+                            looseTracks[index].artwork = ""
+                            looseTracks[index].smallArtwork = ""
+                            looseTracks[index].artwork = artwork
+                            looseTracks[index].smallArtwork = smallArtwork
                         }
                     }
             }

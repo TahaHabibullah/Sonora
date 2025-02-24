@@ -55,7 +55,7 @@ struct QueueView: View {
                 .padding(.leading, 15)
                 
                 HStack {
-                    if let artwork = Utils.shared.loadImageFromDocuments(filePath: currentTrack.artwork) {
+                    if let artwork = Utils.shared.loadImageFromDocuments(filePath: currentTrack.smallArtwork) {
                         Image(uiImage: artwork)
                             .resizable()
                             .scaledToFit()

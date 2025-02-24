@@ -17,15 +17,21 @@ struct EditTracklistView: View {
                 List {
                     ForEach(playlist.tracklist, id: \.self) { track in
                         HStack {
-                            if let artworkPath = track.artwork {
-                                CachedImageView(path: artworkPath)
+                            if let artwork = Utils.shared.loadImageFromDocuments(filePath: track.smallArtwork) {
+                                Image(uiImage: artwork)
+                                    .resizable()
+                                    .scaledToFit()
                                     .frame(width: 50, height: 50)
+                                    .padding(.leading, 15)
+                                    .animation(nil)
                             }
                             else {
                                 Image(systemName: "music.note.list")
                                     .font(.subheadline)
                                     .frame(width: 50, height: 50)
                                     .background(Color.gray.opacity(0.5))
+                                    .padding(.leading, 15)
+                                    .animation(nil)
                             }
                             VStack(spacing: 0) {
                                 HStack {

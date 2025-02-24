@@ -35,9 +35,12 @@ struct TrackPickerView: View {
                             haptics.selectionChanged()
                         }) {
                             HStack {
-                                if let artworkPath = track.artwork {
-                                    CachedImageView(path: artworkPath)
+                                if let artwork = Utils.shared.loadImageFromDocuments(filePath: track.smallArtwork) {
+                                    Image(uiImage: artwork)
+                                        .resizable()
+                                        .scaledToFit()
                                         .frame(width: 50, height: 50)
+                                        .padding(.leading, 15)
                                         .animation(nil)
                                 }
                                 else {
@@ -45,6 +48,7 @@ struct TrackPickerView: View {
                                         .font(.subheadline)
                                         .frame(width: 50, height: 50)
                                         .background(Color.gray.opacity(0.5))
+                                        .padding(.leading, 15)
                                         .animation(nil)
                                 }
                                 VStack(spacing: 0) {

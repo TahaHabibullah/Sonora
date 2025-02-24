@@ -58,7 +58,9 @@ struct AddTracksView: View {
                         if !selectedFiles.isEmpty {
                             let trackPaths = copyFilesToDocuments(sourceURLs: selectedFiles)
                             for trackPath in trackPaths {
-                                let track = Track(artist: "Unknown Artist", artwork: nil, smallArtwork: nil, path: trackPath)
+                                let artworkPath = "Loose_Tracks/" + URL(fileURLWithPath: trackPath).deletingPathExtension().lastPathComponent + ".jpg"
+                                let smallArtworkPath = "Loose_Tracks/" + URL(fileURLWithPath: trackPath).deletingPathExtension().lastPathComponent + "_small.jpg"
+                                let track = Track(artist: "Unknown Artist", artwork: artworkPath, smallArtwork: smallArtworkPath, path: trackPath)
                                 TrackManager.shared.saveTrack(track)
                             }
                         }

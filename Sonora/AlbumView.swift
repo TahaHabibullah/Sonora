@@ -212,20 +212,12 @@ struct AlbumView: View {
                                 else {
                                     Menu {
                                         Button(action: {
-                                            trackToAdd = Track(artist: album.artist,
-                                                               title: element.title,
-                                                               artwork: album.artwork,
-                                                               smallArtwork: album.smallArtwork,
-                                                               path: element.path)
+                                            trackToAdd = element
                                         }) {
                                             Label("Add To Playlist", systemImage: "plus.square")
                                         }
                                         Button(action: {
-                                            playQueue.addToQueue(Track(artist: album.artist,
-                                                                       title: element.title,
-                                                                       artwork: album.artwork,
-                                                                       smallArtwork: album.smallArtwork,
-                                                                       path: element.path))
+                                            playQueue.addToQueue(element)
                                             withAnimation(.linear(duration: 0.25)) {
                                                 showPopup = "Added to queue"
                                             }
@@ -352,21 +344,7 @@ struct AlbumView: View {
                         guard newArtwork != nil else { return }
                         let resizedArtwork = Utils.shared.resizeImage(image: newArtwork, newSize: CGSize(width: 600, height: 600))
                         let resizedArtworkSmall = Utils.shared.resizeImage(image: newArtwork, newSize: CGSize(width: 100, height: 100))
-                        let tuple = Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: album.directory)
-                        
-                        if album.artwork == nil {
-                            for i in 0..<album.tracklist.count {
-                                album.tracklist[i].artwork = tuple.first
-                                album.tracklist[i].smallArtwork = tuple.last
-                            }
-                        }
-                        else {
-                            album.artwork = nil
-                            album.smallArtwork = nil
-                        }
-                        album.artwork = tuple.first
-                        album.smallArtwork = tuple.last
-                        AlbumManager.shared.replaceAlbum(album)
+                        Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: album.directory)
                     }
             }
             .sheet(item: $trackToAdd) { track in
@@ -379,24 +357,9 @@ struct AlbumView: View {
                             guard url.startAccessingSecurityScopedResource() else { return }
                             if let imageData = try? Data(contentsOf: url),
                                 let image = UIImage(data: imageData) {
-                            
                                 let resizedArtwork = Utils.shared.resizeImage(image: image, newSize: CGSize(width: 600, height: 600))
                                 let resizedArtworkSmall = Utils.shared.resizeImage(image: image, newSize: CGSize(width: 100, height: 100))
-                                let tuple = Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: album.directory)
-                                
-                                if album.artwork == nil {
-                                    for i in 0..<album.tracklist.count {
-                                        album.tracklist[i].artwork = tuple.first
-                                        album.tracklist[i].smallArtwork = tuple.last
-                                    }
-                                }
-                                else {
-                                    album.artwork = nil
-                                    album.smallArtwork = nil
-                                }
-                                album.artwork = tuple.first
-                                album.smallArtwork = tuple.last
-                                AlbumManager.shared.replaceAlbum(album)
+                                Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: album.directory)
                             }
                             url.stopAccessingSecurityScopedResource()
                         }

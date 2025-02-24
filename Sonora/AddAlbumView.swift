@@ -156,17 +156,20 @@ struct AddAlbumView: View {
                         let tuple = copyFilesToDocuments(sourceURLs: selectedFiles, name: albumName)
                         let filePaths = tuple.first
                         let directory = tuple.last
+                        let artworkPath = directory + "/artwork.jpg"
+                        let smallArtworkPath = directory + "/artwork_small.jpg"
                         let resizedArtwork = Utils.shared.resizeImage(image: albumArtwork, newSize: CGSize(width: 600, height: 600))
                         let resizedArtworkSmall = Utils.shared.resizeImage(image: albumArtwork, newSize: CGSize(width: 100, height: 100))
-                        let artworkPaths = Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: directory)
+                        Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: directory)
                         let tracklist = filePaths.map { Track(artist: artist,
-                                                              artwork: artworkPaths.first,
-                                                              smallArtwork: artworkPaths.last,
+                                                              artwork: artworkPath,
+                                                              smallArtwork: smallArtworkPath,
                                                               path: $0) }
+                        
                         let newAlbum = Album(name: albumName,
                                              artist: artist,
-                                             artwork: artworkPaths.first,
-                                             smallArtwork: artworkPaths.last,
+                                             artwork: artworkPath,
+                                             smallArtwork: smallArtworkPath,
                                              tracklist: tracklist,
                                              directory: directory)
                         AlbumManager.shared.saveAlbum(newAlbum)

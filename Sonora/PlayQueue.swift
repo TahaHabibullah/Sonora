@@ -211,11 +211,10 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
                 MPNowPlayingInfoPropertyElapsedPlaybackTime: player.currentTime
             ]
             
-            if let artworkPath = tracklist[currentIndex!].artwork {
-                if let image = Utils.shared.loadImageFromDocuments(filePath: artworkPath) {
-                    let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
-                    nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
-                }
+            let artworkPath = tracklist[currentIndex!].artwork
+            if let image = Utils.shared.loadImageFromDocuments(filePath: artworkPath) {
+                let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+                nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
             }
             MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
             
@@ -250,11 +249,10 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
                 MPNowPlayingInfoPropertyElapsedPlaybackTime: player.currentTime
             ]
             
-            if let artworkPath = track.artwork {
-                if let image = Utils.shared.loadImageFromDocuments(filePath: artworkPath) {
-                    let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
-                    nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
-                }
+            let artworkPath = track.artwork
+            if let image = Utils.shared.loadImageFromDocuments(filePath: artworkPath) {
+                let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+                nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
             }
             MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
             
@@ -334,11 +332,10 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             MPNowPlayingInfoPropertyElapsedPlaybackTime: player.currentTime
         ]
         
-        if let artworkPath = currentTrack!.artwork {
-            if let image = Utils.shared.loadImageFromDocuments(filePath: artworkPath) {
-                let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
-                nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
-            }
+        let artworkPath = currentTrack!.artwork
+        if let image = Utils.shared.loadImageFromDocuments(filePath: artworkPath) {
+            let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+            nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
         }
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
     }

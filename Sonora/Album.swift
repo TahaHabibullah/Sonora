@@ -12,20 +12,20 @@ struct Album: Codable, Identifiable {
     let id: UUID
     var name: String
     var artist: String
-    var artwork: String?
-    var smallArtwork: String?
+    var artwork: String
+    var smallArtwork: String
     var tracklist: [Track]
     var directory: String
     var lastPlayed: Date?
     var dateAdded: Date
     var duration: String
     
-    init(name: String, artist: String, artwork: String?, smallArtwork: String?, tracklist: [Track], directory: String) {
+    init(name: String, artist: String, artwork: String, smallArtwork: String, tracklist: [Track], directory: String) {
         self.id = UUID()
         self.name = name
         self.artist = artist
         self.artwork = artwork
-        self.smallArtwork = artwork
+        self.smallArtwork = smallArtwork
         self.tracklist = tracklist
         self.directory = directory
         self.lastPlayed = nil

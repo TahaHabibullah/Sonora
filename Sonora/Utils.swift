@@ -11,32 +11,27 @@ import AVFoundation
 class Utils {
     static let shared = Utils()
     
-    func copyImagesToDocuments(artwork: UIImage?, smallArtwork: UIImage?, directory: String) -> (first: String?, last: String?) {
-        guard artwork != nil else { return (first: nil, last: nil) }
-        guard smallArtwork != nil else { return (first: nil, last: nil) }
+    func copyImagesToDocuments(artwork: UIImage?, smallArtwork: UIImage?, directory: String) {
+        guard artwork != nil else { return }
+        guard smallArtwork != nil else { return }
         let image = artwork!.jpegData(compressionQuality: 1)!
         let smallImage = smallArtwork!.jpegData(compressionQuality: 1)!
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         let fileURL = documentsURL.appendingPathComponent(directory + "/artwork.jpg")
         let fileURLSmall = documentsURL.appendingPathComponent(directory + "/artwork_small.jpg")
-        let filePath = directory + "/artwork.jpg"
-        let filePathSmall = directory + "/artwork_small.jpg"
 
         do {
             try image.write(to: fileURL)
             try smallImage.write(to: fileURLSmall)
-            let result = (first: filePath, last: filePathSmall)
-            return result
         } catch {
             print("Error saving image: \(error.localizedDescription)")
-            return (first: nil, last: nil)
         }
     }
     
-    func copyLooseTrackImagesToDocuments(artwork: UIImage?, smallArtwork: UIImage?, trackPath: String) -> (first: String?, last: String?) {
-        guard artwork != nil else { return (first: nil, last: nil) }
-        guard smallArtwork != nil else { return (first: nil, last: nil) }
+    func copyLooseTrackImagesToDocuments(artwork: UIImage?, smallArtwork: UIImage?, trackPath: String) -> (first: String, last: String) {
+        guard artwork != nil else { return (first: "", last: "") }
+        guard smallArtwork != nil else { return (first: "", last: "") }
         let image = artwork!.jpegData(compressionQuality: 1)!
         let smallImage = smallArtwork!.jpegData(compressionQuality: 1)!
         let fileManager = FileManager.default
@@ -54,15 +49,14 @@ class Utils {
             return result
         } catch {
             print("Error saving image: \(error.localizedDescription)")
-            return (first: nil, last: nil)
+            return (first: "", last: "")
         }
     }
     
-    func loadImageFromDocuments(filePath: String?) -> UIImage? {
-        guard filePath != nil else { return nil }
+    func loadImageFromDocuments(filePath: String) -> UIImage? {
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let fileURL = documentsURL.appendingPathComponent(filePath!)
+        let fileURL = documentsURL.appendingPathComponent(filePath)
         return UIImage(contentsOfFile: fileURL.path)
     }
     
@@ -127,9 +121,8 @@ class Utils {
         return fileManager.fileExists(atPath: path.path, isDirectory: &isDirectory) && isDirectory.boolValue
     }
     
-    func getSmallArtworkPath(from artworkPath: String?) -> String? {
-        guard artworkPath != nil else { return nil }
-        var result = artworkPath!
+    func getSmallArtworkPath(from artworkPath: String) -> String {
+        var result = artworkPath
         if let range = result.range(of: ".jpg") {
             result.insert(contentsOf: "_small", at: range.lowerBound)
         }
