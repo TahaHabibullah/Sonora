@@ -11,16 +11,14 @@ struct EditTrackView: View {
     @Environment(\.presentationMode) var presentationMode
     @State var track: Track
     @State var playlist: Playlist?
-    var trackIndex: Int?
     @State private var newArtwork: UIImage? = nil
     @State private var isImagePickerPresented = false
     @State private var isFilePickerImagesPresented = false
     @State private var showImportOptions = false
     
-    init(playlist: Playlist? = nil, track: Track, trackIndex: Int? = nil) {
+    init(playlist: Playlist? = nil, track: Track) {
         self.playlist = playlist
         self.track = track
-        self.trackIndex = trackIndex
     }
     
     var body: some View {
@@ -126,14 +124,10 @@ struct EditTrackView: View {
                     }
                     .foregroundColor(.blue),
                     trailing: Button("Save") {
-                        if let index = trackIndex {
-                            playlist!.tracklist[index] = track
-                            PlaylistManager.shared.replacePlaylist(playlist!)
+                        if let index = track.path.firstIndex(of: "/") {
+                            TrackManager.shared.replaceTrack(track, from: String(track.path.prefix(upTo: index)))
+                            presentationMode.wrappedValue.dismiss()
                         }
-                        else {
-                            TrackManager.shared.replaceTrack(track)
-                        }
-                        presentationMode.wrappedValue.dismiss()
                     }
                     .foregroundColor(.blue)
                 )

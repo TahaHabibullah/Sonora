@@ -247,8 +247,8 @@ struct LibraryView: View {
                                                             isPresented: $showDeleteConfirmation,
                                                             titleVisibility: .visible) {
                                             Button("Delete", role: .destructive) {
-                                                TrackManager.shared.deleteTrack(trackToDelete!)
-                                                looseTracks = TrackManager.shared.fetchTracks()
+                                                TrackManager.shared.deleteLooseTrack(trackToDelete!)
+                                                looseTracks = TrackManager.shared.fetchTracks(key: "Loose_Tracks")
                                                 trackToDelete = nil
                                                 showDeleteConfirmation = false
                                             }
@@ -268,7 +268,7 @@ struct LibraryView: View {
             }
             .onAppear {
                 albums = AlbumManager.shared.fetchAlbums()
-                looseTracks = TrackManager.shared.fetchTracks()
+                looseTracks = TrackManager.shared.fetchTracks(key: "Loose_Tracks")
             }
             .navigationTitle("Library")
             .toolbar {
@@ -495,14 +495,14 @@ struct LibraryView: View {
             .sheet(isPresented: $isAddTracksPresented) {
                 AddTracksView(isPresented: $isAddTracksPresented, showPopup: $showPopup, selectedFiles: selectedFiles)
                     .onDisappear {
-                        looseTracks = TrackManager.shared.fetchTracks()
+                        looseTracks = TrackManager.shared.fetchTracks(key: "Loose_Tracks")
                         selectedFiles.removeAll()
                     }
             }
             .sheet(item: $trackToEdit) { track in
                 EditTrackView(track: track)
                     .onDisappear {
-                        looseTracks = TrackManager.shared.fetchTracks()
+                        looseTracks = TrackManager.shared.fetchTracks(key: "Loose_Tracks")
                         if let index = looseTracks.firstIndex(where: { $0.id == track.id }) {
                             let artwork = looseTracks[index].artwork
                             let smallArtwork = looseTracks[index].smallArtwork
@@ -511,6 +511,7 @@ struct LibraryView: View {
                             looseTracks[index].artwork = artwork
                             looseTracks[index].smallArtwork = smallArtwork
                         }
+                        TrackManager.shared.replaceTracklist(looseTracks, for: "Loose_Tracks")
                     }
             }
             .sheet(item: $trackToAdd) { track in

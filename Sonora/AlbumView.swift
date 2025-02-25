@@ -18,7 +18,7 @@ struct AlbumView: View {
     @State private var showDeleteConfirmation = false
     @State private var editMode: EditMode = .inactive
     @State private var isEditingName = false
-    @State private var isEditingArtists = false
+    @State private var isEditingArtist = false
     @State private var editingTrackIndex: Int? = nil
     @State private var trackToAdd: Track? = nil
     @State private var newTitle: String = ""
@@ -27,6 +27,7 @@ struct AlbumView: View {
     @State private var artworkUrl: URL?
     @State private var markedForDeletion: [Track] = []
     @State private var showPopup: String = ""
+    @State private var tracklist: [Track] = []
     @State var album: Album
     @FocusState private var nameFieldFocused: Bool
     @FocusState private var artistFieldFocused: Bool
@@ -87,7 +88,7 @@ struct AlbumView: View {
                             .multilineTextAlignment(.center)
                     }
                 }
-                if isEditingArtists {
+                if isEditingArtist {
                     TextField(album.artist, text: $newArtist)
                         .font(.headline)
                         .foregroundColor(.gray)
@@ -110,7 +111,7 @@ struct AlbumView: View {
                             .multilineTextAlignment(.center)
                     }
                     else {
-                        Text("Unkown Artist")
+                        Text("Unknown Artist")
                             .font(.headline)
                             .foregroundColor(.gray)
                             .padding(.bottom, 10)
@@ -119,11 +120,11 @@ struct AlbumView: View {
                     }
                 }
                 
-                if !album.tracklist.isEmpty {
+                if !tracklist.isEmpty {
                     HStack(spacing: 0) {
                         Button(action: {
                             haptics.impactOccurred()
-                            playQueue.startQueue(from: 0, in: album)
+                            playQueue.startQueue(from: 0, in: album, tracks: tracklist)
                             album.lastPlayed = Date.now
                             AlbumManager.shared.replaceAlbum(album)
                         }) {
@@ -147,7 +148,7 @@ struct AlbumView: View {
                         
                         Button(action: {
                             haptics.impactOccurred()
-                            playQueue.startShuffledQueue(from: album)
+                            playQueue.startShuffledQueue(from: album, tracks: tracklist)
                             album.lastPlayed = Date.now
                             AlbumManager.shared.replaceAlbum(album)
                         }) {
@@ -172,9 +173,9 @@ struct AlbumView: View {
                 }
                 
                 List {
-                    ForEach(Array(album.tracklist.enumerated()), id: \.element) { index, element in
+                    ForEach(Array(tracklist.enumerated()), id: \.element) { index, element in
                         Button(action: {
-                            playQueue.startQueue(from: index, in: album)
+                            playQueue.startQueue(from: index, in: album, tracks: tracklist)
                             album.lastPlayed = Date.now
                             AlbumManager.shared.replaceAlbum(album)
                         }) {
@@ -201,7 +202,7 @@ struct AlbumView: View {
                                 
                                 if editingTrackIndex == index {
                                     Button(action: {
-                                        album.tracklist[index].title = newTitle
+                                        tracklist[index].title = newTitle
                                         confirmTrackChanges()
                                     }) {
                                         Image(systemName: "checkmark")
@@ -250,7 +251,7 @@ struct AlbumView: View {
                 }
                 .id(editMode.isEditing)
                 .scrollDisabled(true)
-                .frame(height: CGFloat(120 + album.tracklist.count * 62))
+                .frame(height: CGFloat(120 + tracklist.count * 62))
                 .environment(\.editMode, $editMode)
                 .listStyle(PlainListStyle())
             }
@@ -265,7 +266,7 @@ struct AlbumView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if editMode.isEditing || isEditingName || isEditingArtists {
+                    if editMode.isEditing || isEditingName || isEditingArtist {
                         Button(action: {
                             if editMode.isEditing {
                                 confirmChanges()
@@ -273,8 +274,8 @@ struct AlbumView: View {
                             else if isEditingName {
                                 confirmNameChanges()
                             }
-                            else if isEditingArtists {
-                                confirmArtistsChanges()
+                            else if isEditingArtist {
+                                confirmArtistChanges()
                             }
                         }) {
                             Text("Done")
@@ -299,9 +300,9 @@ struct AlbumView: View {
                                 Label("Edit Title", systemImage: "pencil")
                             }
                             Button(action: {
-                                isEditingArtists = true;
+                                isEditingArtist = true;
                             }) {
-                                Label("Edit Artists", systemImage: "pencil")
+                                Label("Edit Artist", systemImage: "pencil")
                             }
                             Button(action: {
                                 editMode = .active
@@ -328,6 +329,7 @@ struct AlbumView: View {
                                             titleVisibility: .visible) {
                             Button("Delete", role: .destructive) {
                                 AlbumManager.shared.deleteAlbum(album)
+                                TrackManager.shared.deleteAlbumTracklist(from: album.directory)
                                 presentationMode.wrappedValue.dismiss()
                                 showDeleteConfirmation = false
                             }
@@ -345,6 +347,12 @@ struct AlbumView: View {
                         let resizedArtwork = Utils.shared.resizeImage(image: newArtwork, newSize: CGSize(width: 600, height: 600))
                         let resizedArtworkSmall = Utils.shared.resizeImage(image: newArtwork, newSize: CGSize(width: 100, height: 100))
                         Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: album.directory)
+                        let artworkPath = album.artwork
+                        let smallArtworkPath = album.smallArtwork
+                        album.artwork = ""
+                        album.smallArtwork = ""
+                        album.artwork = artworkPath
+                        album.smallArtwork = smallArtworkPath
                     }
             }
             .sheet(item: $trackToAdd) { track in
@@ -360,6 +368,12 @@ struct AlbumView: View {
                                 let resizedArtwork = Utils.shared.resizeImage(image: image, newSize: CGSize(width: 600, height: 600))
                                 let resizedArtworkSmall = Utils.shared.resizeImage(image: image, newSize: CGSize(width: 100, height: 100))
                                 Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: album.directory)
+                                let artworkPath = album.artwork
+                                let smallArtworkPath = album.smallArtwork
+                                album.artwork = ""
+                                album.smallArtwork = ""
+                                album.artwork = artworkPath
+                                album.smallArtwork = smallArtworkPath
                             }
                             url.stopAccessingSecurityScopedResource()
                         }
@@ -400,16 +414,23 @@ struct AlbumView: View {
                 }
             }
         }
+        .onAppear {
+            tracklist = TrackManager.shared.fetchTracks(key: album.directory)
+        }
     }
     
     private func deleteFile(at offsets: IndexSet) {
-        markedForDeletion.append(album.tracklist[offsets.first!])
-        album.tracklist.remove(atOffsets: offsets)
+        markedForDeletion.append(tracklist[offsets.first!])
+        tracklist.remove(atOffsets: offsets)
     }
     
     private func confirmChanges() {
-        deleteFilesFromDocuments(filePaths: markedForDeletion.map { $0.path })
-        AlbumManager.shared.replaceAlbum(album)
+        if !markedForDeletion.isEmpty {
+            deleteFilesFromDocuments(tracks: markedForDeletion)
+            TrackManager.shared.deleteTracksFromAlbum(from: album.directory,
+                                                      with: markedForDeletion.map { $0.id })
+        }
+        TrackManager.shared.replaceTracklist(tracklist, for: album.directory)
         editMode = .inactive
     }
     
@@ -418,36 +439,45 @@ struct AlbumView: View {
         isEditingName = false
     }
     
-    private func confirmArtistsChanges() {
+    private func confirmArtistChanges() {
         album.artist = newArtist
-        for i in 0..<album.tracklist.count {
-            album.tracklist[i].artist = newArtist
+        for i in 0..<tracklist.count {
+            tracklist[i].artist = newArtist
         }
+        TrackManager.shared.replaceTracklist(tracklist, for: album.directory)
         AlbumManager.shared.replaceAlbum(album)
-        isEditingArtists = false
+        isEditingArtist = false
     }
     
     private func confirmTrackChanges() {
-        AlbumManager.shared.replaceAlbum(album)
+        TrackManager.shared.replaceTracklist(tracklist, for: album.directory)
         editingTrackIndex = nil
     }
 
     private func moveFile(from source: IndexSet, to destination: Int) {
-        album.tracklist.move(fromOffsets: source, toOffset: destination)
+        tracklist.move(fromOffsets: source, toOffset: destination)
     }
     
-    private func deleteFilesFromDocuments(filePaths: [String]) {
+    private func deleteFilesFromDocuments(tracks: [Track]) {
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         
-        for path in filePaths {
+        for track in tracks {
             do {
-                let trackPath = documentsURL.appendingPathComponent(path)
+                let trackPath = documentsURL.appendingPathComponent(track.path)
                 if fileManager.fileExists(atPath: trackPath.path) {
                     try fileManager.removeItem(at: trackPath)
                 }
+                if track.artwork != album.artwork {
+                    let artworkPath = documentsURL.appendingPathComponent(track.artwork)
+                    let smallArtworkPath = documentsURL.appendingPathComponent(track.smallArtwork)
+                    if fileManager.fileExists(atPath: artworkPath.path) {
+                        try fileManager.removeItem(at: artworkPath)
+                        try fileManager.removeItem(at: smallArtworkPath)
+                    }
+                }
             } catch {
-                print("Failed to delete file at path: \(path)")
+                print("Failed to delete file at path: \(track.path)")
             }
         }
         markedForDeletion.removeAll()
@@ -487,8 +517,8 @@ struct AlbumView: View {
                                                   artwork: album.artwork,
                                                   smallArtwork: album.smallArtwork,
                                                   path: $0) }
-            album.tracklist.append(contentsOf: newTracks)
-            AlbumManager.shared.replaceAlbum(album)
+            tracklist.append(contentsOf: newTracks)
+            TrackManager.shared.replaceTracklist(tracklist, for: album.directory)
         case .failure(let error):
             print("File selection error: \(error.localizedDescription)")
         }

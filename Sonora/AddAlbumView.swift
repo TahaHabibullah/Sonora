@@ -170,8 +170,9 @@ struct AddAlbumView: View {
                                              artist: artist,
                                              artwork: artworkPath,
                                              smallArtwork: smallArtworkPath,
-                                             tracklist: tracklist,
                                              directory: directory)
+                        
+                        TrackManager.shared.addTracklist(tracklist, key: directory)
                         AlbumManager.shared.saveAlbum(newAlbum)
                         showPopup = "Created album"
                         isPresented = false

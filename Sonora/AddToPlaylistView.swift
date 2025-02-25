@@ -40,7 +40,7 @@ struct AddToPlaylistView: View {
                     ForEach(Array(playlists.enumerated()), id:\.element) { index, element in
                         Button(action: {
                             var playlist = playlists[index]
-                            playlist.tracklist.append(track)
+                            playlist.tracklist.append(track.id)
                             PlaylistManager.shared.replacePlaylist(playlist)
                             showPopup = "Added to playlist"
                             presentationMode.wrappedValue.dismiss()
@@ -96,8 +96,8 @@ struct AddToPlaylistView: View {
         .onAppear {
             playlists = PlaylistManager.shared.fetchPlaylists()
             for playlist in playlists {
-                let tracklistPaths = Set(playlist.tracklist.map { $0.path })
-                if tracklistPaths.contains(track.path) {
+                let idSet = Set(playlist.tracklist)
+                if idSet.contains(track.id) {
                     playlists.removeAll { $0.id == playlist.id }
                 }
             }

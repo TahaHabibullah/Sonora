@@ -35,11 +35,11 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         }
     }
     
-    func startQueue(from track: Int, in album: Album) {
+    func startQueue(from track: Int, in album: Album, tracks: [Track]) {
         currentIndex = track
         if currentIndex != nil {
-            originalTracklist = album.tracklist
-            tracklist = album.tracklist
+            originalTracklist = tracks
+            tracklist = tracks
             
             originalName = album.name
             name = album.name
@@ -49,14 +49,14 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         }
     }
     
-    func startShuffledQueue(from album: Album) {
+    func startShuffledQueue(from album: Album, tracks: [Track]) {
         currentIndex = 0
-        originalTracklist = album.tracklist
+        originalTracklist = tracks
         originalName = album.name
         name = album.name
         
-        let shuffledIndices = album.tracklist.indices.shuffled()
-        tracklist = shuffledIndices.map { album.tracklist[$0] }
+        let shuffledIndices = tracks.indices.shuffled()
+        tracklist = shuffledIndices.map { tracks[$0] }
         
         isShuffled = true
         playCurrentTrack()

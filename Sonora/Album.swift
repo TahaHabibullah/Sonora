@@ -14,23 +14,19 @@ struct Album: Codable, Identifiable {
     var artist: String
     var artwork: String
     var smallArtwork: String
-    var tracklist: [Track]
     var directory: String
     var lastPlayed: Date?
     var dateAdded: Date
-    var duration: String
     
-    init(name: String, artist: String, artwork: String, smallArtwork: String, tracklist: [Track], directory: String) {
+    init(name: String, artist: String, artwork: String, smallArtwork: String, directory: String) {
         self.id = UUID()
         self.name = name
         self.artist = artist
         self.artwork = artwork
         self.smallArtwork = smallArtwork
-        self.tracklist = tracklist
         self.directory = directory
         self.lastPlayed = nil
         self.dateAdded = Date.now
-        self.duration = Utils.shared.getPlaylistDuration(from: tracklist.map { $0.path })
     }
 }
 
@@ -66,21 +62,34 @@ class AlbumManager {
     
     func deleteAlbum(_ album: Album) {
         var albums = fetchAlbums()
-        self.deleteAlbumDirectory(path: album.directory)
+        deleteAlbumFromDocuments(album: album)
         albums.removeAll { $0.id == album.id }
         if let data = try? JSONEncoder().encode(albums) {
             UserDefaults.standard.set(data, forKey: storageKey)
         }
     }
     
-    private func deleteAlbumDirectory(path: String) {
+    private func deleteAlbumFromDocuments(album: Album) {
+        let path = album.directory
         let fileManager = FileManager.default
         let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let tracklist = TrackManager.shared.fetchTracks(key: path)
         
         do {
-            let trackPath = documentsDirectory.appendingPathComponent(path)
-            if fileManager.fileExists(atPath: trackPath.path) {
-                try fileManager.removeItem(at: trackPath)
+            for track in tracklist {
+                if track.artwork != album.artwork {
+                    let artworkPath = documentsDirectory.appendingPathComponent(track.artwork)
+                    let smallArtworkPath = documentsDirectory.appendingPathComponent(track.smallArtwork)
+                    if fileManager.fileExists(atPath: artworkPath.path) {
+                        try fileManager.removeItem(at: artworkPath)
+                        try fileManager.removeItem(at: smallArtworkPath)
+                    }
+                }
+            }
+            
+            let directory = documentsDirectory.appendingPathComponent(path)
+            if fileManager.fileExists(atPath: directory.path) {
+                try fileManager.removeItem(at: directory)
             }
         } catch {
             print("Failed to delete directory: \(path)")

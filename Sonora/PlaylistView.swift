@@ -23,6 +23,7 @@ struct PlaylistView: View {
     @State private var tracksToAdd: [Track] = []
     @State private var isEditingName = false
     @State private var newArtwork: UIImage? = nil
+    @State private var tracklist: [Track] = []
     @State var playlist: Playlist
     @FocusState private var nameFieldFocused: Bool
     let haptics = UIImpactFeedbackGenerator(style: .light)
@@ -84,15 +85,14 @@ struct PlaylistView: View {
                 
                 HStack {
                     Spacer()
-                    Text("\(playlist.tracklist.count) Tracks  |  \(playlist.duration)")
+                    Text("\(tracklist.count) Tracks  |  \(playlist.duration)")
                         .font(.caption)
                     Spacer()
                 }
                 .padding(.top, 5)
                 .foregroundColor(.gray)
                 
-                if !playlist.tracklist.isEmpty {
-                    let tracklist = playlist.tracklist
+                if !tracklist.isEmpty {
                     HStack(spacing: 0) {
                         Button(action: {
                             haptics.impactOccurred()
@@ -144,9 +144,9 @@ struct PlaylistView: View {
                     }
                 }
                     
-                ForEach(playlist.tracklist, id: \.self) { track in
+                ForEach(tracklist, id: \.self) { track in
                     Button(action: {
-                        playQueue.startPlaylistQueue(from: track, in: playlist.tracklist, playlistName: playlist.name)
+                        playQueue.startPlaylistQueue(from: track, in: tracklist, playlistName: playlist.name)
                         playlist.lastPlayed = Date.now
                         PlaylistManager.shared.replacePlaylist(playlist)
                     }) {
@@ -176,11 +176,20 @@ struct PlaylistView: View {
                                     Spacer()
                                 }
                                 HStack {
-                                    Text(track.artist)
-                                        .foregroundColor(.gray)
-                                        .font(.caption)
-                                        .lineLimit(1)
-                                        .truncationMode(.tail)
+                                    if !track.artist.isEmpty {
+                                        Text(track.artist)
+                                            .foregroundColor(.gray)
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
+                                    }
+                                    else {
+                                        Text("Unknown Artist")
+                                            .foregroundColor(.gray)
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
+                                    }
                                     Spacer()
                                 }
                             }
@@ -329,6 +338,9 @@ struct PlaylistView: View {
                 }
             }
         }
+        .onAppear {
+            tracklist = TrackManager.shared.fetchPlaylist(from: playlist.tracklist)
+        }
         .fileImporter(
             isPresented: $isFilePickerImagesPresented,
             allowedContentTypes: [.image]
@@ -358,28 +370,33 @@ struct PlaylistView: View {
                 }
         }
         .sheet(isPresented: $isTrackPickerPresented) {
-            let currentIds = playlist.tracklist.map { $0.id }
+            let currentIds = playlist.tracklist
             TrackPickerView(isPresented: $isTrackPickerPresented, selectedTracks: $tracksToAdd, currentIds: Set(currentIds))
                 .onDisappear {
-                    playlist.tracklist.append(contentsOf: tracksToAdd)
+                    playlist.tracklist.append(contentsOf: tracksToAdd.map { $0.id })
+                    tracklist.append(contentsOf: tracksToAdd)
+                    playlist.duration = Utils.shared.getPlaylistDuration(from: tracklist.map { $0.path })
                     PlaylistManager.shared.replacePlaylist(playlist)
+                    tracksToAdd = []
                 }
         }
         .sheet(isPresented: $isEditTracklistPresented) {
-            EditTracklistView(isPresented: $isEditTracklistPresented, playlist: playlist)
+            EditTracklistView(isPresented: $isEditTracklistPresented, tracklist: $tracklist, playlist: playlist)
                 .onDisappear {
                     playlist = PlaylistManager.shared.fetchPlaylist(playlist.id)
                 }
         }
         .sheet(item: $trackToEdit) { track in
-            if let index = playlist.tracklist.firstIndex(where: { $0.id == track.id }) {
-                EditTrackView(playlist: playlist, track: track, trackIndex: index)
+            if let index = playlist.tracklist.firstIndex(where: { $0 == track.id }) {
+                EditTrackView(playlist: playlist, track: track)
                     .onDisappear {
-                        playlist = PlaylistManager.shared.fetchPlaylist(playlist.id)
-                        let newArtwork = playlist.tracklist[index].artwork
-                        let newArtworkSmall = playlist.tracklist[index].smallArtwork
-                        playlist.tracklist[index].artwork = newArtwork
-                        playlist.tracklist[index].smallArtwork = newArtworkSmall
+                        tracklist = TrackManager.shared.fetchPlaylist(from: playlist.tracklist)
+                        let newArtwork = tracklist[index].artwork
+                        let newArtworkSmall = tracklist[index].smallArtwork
+                        tracklist[index].artwork = ""
+                        tracklist[index].smallArtwork = ""
+                        tracklist[index].artwork = newArtwork
+                        tracklist[index].smallArtwork = newArtworkSmall
                     }
             }
         }

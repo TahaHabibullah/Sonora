@@ -50,6 +50,7 @@ struct PlaylistsView: View {
                                             .scaledToFit()
                                             .frame(width: 75, height: 75)
                                             .clipShape(RoundedRectangle(cornerRadius: 10))
+                                            .animation(nil)
                                     } else {
                                         Image(systemName: "music.note.list")
                                             .font(.title)
@@ -60,6 +61,7 @@ struct PlaylistsView: View {
                                                 RoundedRectangle(cornerRadius: 10)
                                                 .stroke(.gray, lineWidth: 1)
                                             )
+                                            .animation(nil)
                                     }
                                     if !playlist.name.isEmpty {
                                         Text(playlist.name)

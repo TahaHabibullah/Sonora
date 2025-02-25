@@ -12,19 +12,19 @@ struct Playlist: Codable, Identifiable, Hashable {
     let id: UUID
     var name: String
     var artwork: Data?
-    var tracklist: [Track]
+    var tracklist: [UUID]
     var lastPlayed: Date?
     var dateAdded: Date
     var duration: String
     
-    init(name: String, artwork: UIImage?, tracklist: [Track]) {
+    init(name: String, artwork: UIImage?, tracklist: [UUID], duration: String) {
         self.id = UUID()
         self.name = name
         self.artwork = artwork?.jpegData(compressionQuality: 0.8)
         self.tracklist = tracklist
         self.lastPlayed = nil
         self.dateAdded = Date.now
-        self.duration = Utils.shared.getPlaylistDuration(from: tracklist.map { $0.path })
+        self.duration = duration
     }
     
     init() {
@@ -74,6 +74,14 @@ class PlaylistManager {
         
         if let data = try? JSONEncoder().encode(playlists) {
             UserDefaults.standard.set(data, forKey: storageKey)
+        }
+    }
+    
+    func removeFromAllPlaylists(for ids: [UUID]) {
+        let playlists = fetchPlaylists()
+        for var playlist in playlists {
+            playlist.tracklist = playlist.tracklist.filter { !ids.contains($0) }
+            replacePlaylist(playlist)
         }
     }
     

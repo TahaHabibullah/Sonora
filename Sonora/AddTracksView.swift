@@ -61,7 +61,7 @@ struct AddTracksView: View {
                                 let artworkPath = "Loose_Tracks/" + URL(fileURLWithPath: trackPath).deletingPathExtension().lastPathComponent + ".jpg"
                                 let smallArtworkPath = "Loose_Tracks/" + URL(fileURLWithPath: trackPath).deletingPathExtension().lastPathComponent + "_small.jpg"
                                 let track = Track(artist: "Unknown Artist", artwork: artworkPath, smallArtwork: smallArtworkPath, path: trackPath)
-                                TrackManager.shared.saveTrack(track)
+                                TrackManager.shared.addTrack(track, key: "Loose_Tracks")
                             }
                         }
                         showPopup = "Imported \(selectedFiles.count) track(s)"

@@ -40,7 +40,6 @@ struct TrackPickerView: View {
                                         .resizable()
                                         .scaledToFit()
                                         .frame(width: 50, height: 50)
-                                        .padding(.leading, 15)
                                         .animation(nil)
                                 }
                                 else {
@@ -48,7 +47,6 @@ struct TrackPickerView: View {
                                         .font(.subheadline)
                                         .frame(width: 50, height: 50)
                                         .background(Color.gray.opacity(0.5))
-                                        .padding(.leading, 15)
                                         .animation(nil)
                                 }
                                 VStack(spacing: 0) {
@@ -60,11 +58,20 @@ struct TrackPickerView: View {
                                         Spacer()
                                     }
                                     HStack {
-                                        Text(track.artist)
-                                            .foregroundColor(.gray)
-                                            .font(.caption)
-                                            .lineLimit(1)
-                                            .truncationMode(.tail)
+                                        if !track.artist.isEmpty {
+                                            Text(track.artist)
+                                                .foregroundColor(.gray)
+                                                .font(.caption)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                        }
+                                        else {
+                                            Text("Unknown Artist")
+                                                .foregroundColor(.gray)
+                                                .font(.caption)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                        }
                                         Spacer()
                                     }
                                 }
@@ -102,21 +109,11 @@ struct TrackPickerView: View {
                 .foregroundColor(.blue)
             )
             .onAppear {
-                let albums: [Album] = AlbumManager.shared.fetchAlbums()
-                let looseTracks = TrackManager.shared.fetchTracks()
-                for track in looseTracks {
+                let tracks = TrackManager.shared.fetchAllTracks()
+                for track in tracks {
                     if !currentIds.contains(track.id) {
                         allTracks.append(track)
                     }
-                }
-                for album in albums {
-                    var result: [Track] = []
-                    for track in album.tracklist {
-                        if !currentIds.contains(track.id) {
-                            result.append(track)
-                        }
-                    }
-                    allTracks.append(contentsOf: result)
                 }
                 for track in selectedTracks {
                     selectedIds.insert(track.id)
