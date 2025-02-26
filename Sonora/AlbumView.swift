@@ -364,7 +364,7 @@ struct AlbumView: View {
                         if let url = artworkUrl {
                             guard url.startAccessingSecurityScopedResource() else { return }
                             if let imageData = try? Data(contentsOf: url),
-                                let image = UIImage(data: imageData) {
+                               let image = UIImage(data: imageData) {
                                 let resizedArtwork = Utils.shared.resizeImage(image: image, newSize: CGSize(width: 600, height: 600))
                                 let resizedArtworkSmall = Utils.shared.resizeImage(image: image, newSize: CGSize(width: 100, height: 100))
                                 Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: album.directory)
@@ -453,7 +453,7 @@ struct AlbumView: View {
         TrackManager.shared.replaceTracklist(tracklist, for: album.directory)
         editingTrackIndex = nil
     }
-
+    
     private func moveFile(from source: IndexSet, to destination: Int) {
         tracklist.move(fromOffsets: source, toOffset: destination)
     }
@@ -492,13 +492,14 @@ struct AlbumView: View {
         for sourceURL in sourceURLs {
             let destinationURL = albumDirectory.appendingPathComponent(sourceURL.lastPathComponent)
             let filePath = album.directory + "/" + sourceURL.lastPathComponent
-           
+            
             if fileManager.fileExists(atPath: destinationURL.path) {
                 continue
             }
             
             do {
                 try fileManager.copyItem(at: sourceURL, to: destinationURL)
+                try destinationURL.disableFileProtection()
                 filePaths.append(filePath)
             } catch {
                 print("Unable to copy file: \(error.localizedDescription)")

@@ -225,6 +225,33 @@ struct QueueView: View {
                 .padding(.top, -25)
                 .listStyle(PlainListStyle())
             }
+            else {
+                HStack {
+                    Text("Not Playing")
+                        .font(.headline)
+                        .bold()
+                    Spacer()
+                }
+                .padding(.leading, 15)
+                
+                HStack {
+                    Image(systemName: "music.note.list")
+                        .font(.subheadline)
+                        .frame(width: 50, height: 50)
+                        .background(Color.gray.opacity(0.5))
+                        .padding()
+                    
+                    Text("-")
+                        .font(.subheadline)
+                        .padding(.leading, -10)
+                        .padding(.trailing, 10)
+                    
+                    Spacer()
+                }
+                .padding(.bottom, 10)
+                
+                Spacer()
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.black)

@@ -263,3 +263,9 @@ struct ImageDocumentPicker: UIViewControllerRepresentable {
         }
     }
 }
+
+extension URL {
+    var parentDirectory: URL? { try? resourceValues(forKeys: [.parentDirectoryURLKey]).parentDirectory }
+    var fileProtection: URLFileProtection? { try? resourceValues(forKeys: [.fileProtectionKey]).fileProtection }
+    func disableFileProtection() throws { try (self as NSURL).setResourceValue(URLFileProtection.none, forKey: .fileProtectionKey) }
+}

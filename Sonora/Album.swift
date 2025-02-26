@@ -39,7 +39,7 @@ class AlbumManager {
             return []
         }
         let albums = (try? JSONDecoder().decode([Album].self, from: data)) ?? []
-        return (try? JSONDecoder().decode([Album].self, from: data)) ?? []
+        return albums
     }
     
     func saveAlbum(_ album: Album) {

@@ -258,6 +258,7 @@ struct AddAlbumView: View {
         
         do {
             try fileManager.createDirectory(at: albumDirectory, withIntermediateDirectories: true, attributes: nil)
+            try albumDirectory.disableFileProtection()
         } catch {
             print("Error creating directory: \(error.localizedDescription)")
         }
@@ -274,6 +275,7 @@ struct AddAlbumView: View {
             
             do {
                 try fileManager.copyItem(at: sourceURL, to: destinationURL)
+                try destinationURL.disableFileProtection()
                 filePaths.append(filePath)
             } catch {
                 print("Unable to copy file: \(error.localizedDescription)")

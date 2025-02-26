@@ -105,6 +105,7 @@ struct AddTracksView: View {
         if !Utils.shared.directoryExists(at: looseTracksDirectory) {
             do {
                 try fileManager.createDirectory(at: looseTracksDirectory, withIntermediateDirectories: true, attributes: nil)
+                try looseTracksDirectory.disableFileProtection()
             } catch {
                 print("Error creating directory: \(error.localizedDescription)")
             }
@@ -141,6 +142,7 @@ struct AddTracksView: View {
         
             do {
                 try fileManager.copyItem(at: sourceURL, to: destinationURL)
+                try destinationURL.disableFileProtection()
                 filePaths.append(filePath)
             } catch {
                 print("Unable to copy file: \(error.localizedDescription)")

@@ -50,8 +50,8 @@ class PlaylistManager {
         guard let data = UserDefaults.standard.data(forKey: storageKey) else {
             return []
         }
-        let tracks = (try? JSONDecoder().decode([Playlist].self, from: data)) ?? []
-        return (try? JSONDecoder().decode([Playlist].self, from: data)) ?? []
+        let playlists = (try? JSONDecoder().decode([Playlist].self, from: data)) ?? []
+        return playlists
     }
     
     func fetchPlaylist(_ id: UUID) -> Playlist {

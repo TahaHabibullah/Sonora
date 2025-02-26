@@ -21,12 +21,14 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var isShuffled: Bool = false
     @Published var audioPlayer: AVAudioPlayer?
     @Published var originalName: String = ""
+    private let saveStateKey = "savedPlayQueueState"
     var playbackTimer: Timer?
     
     override init() {
         super.init()
         setupRemoteTransportControls()
         observeAudioInterruptions()
+        loadPlaybackState()
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
             try AVAudioSession.sharedInstance().setActive(true)
@@ -192,9 +194,9 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
             let trackPath = tracklist[currentIndex!].path
             let trackURL = documentsDirectory.appendingPathComponent(trackPath)
-            try fileManager.setAttributes([.protectionKey: FileProtectionType.none], ofItemAtPath: trackURL.path)
             
             audioPlayer = try AVAudioPlayer(contentsOf: trackURL)
+            audioPlayer?.prepareToPlay()
             audioPlayer?.delegate = self
             audioPlayer?.play()
             isPlaying = true
@@ -217,6 +219,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
                 nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
             }
             MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+            savePlaybackState()
             
         } catch {
             print("Error playing track: \(error.localizedDescription)")
@@ -234,6 +237,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             let trackURL = documentsDirectory.appendingPathComponent(trackPath)
             
             audioPlayer = try AVAudioPlayer(contentsOf: trackURL)
+            audioPlayer?.prepareToPlay()
             audioPlayer?.delegate = self
             audioPlayer?.play()
             isPlaying = true
@@ -265,6 +269,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     func pausePlayback() {
         audioPlayer?.pause()
         isPlaying = false
+        savePlaybackState()
     }
     
     func resumePlayback() {
@@ -282,6 +287,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         currentTrack = nil
         isShuffled = false
         name = ""
+        savePlaybackState(reset: true)
     }
     
     func skipToTrack(_ index: Int) {
@@ -390,6 +396,26 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             name: AVAudioSession.interruptionNotification,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleRouteChange(_:)),
+            name: AVAudioSession.routeChangeNotification,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(savePlaybackStateOnExit),
+            name: UIApplication.willResignActiveNotification,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(savePlaybackStateOnExit),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
     }
 
     @objc private func handleInterruption(notification: Notification) {
@@ -414,4 +440,80 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             break
         }
     }
+    
+    @objc private func handleRouteChange(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
+              let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else {
+            return
+        }
+
+        if reason == .oldDeviceUnavailable {
+            isPlaying = false
+            audioPlayer?.pause()
+        }
+    }
+    
+    private func savePlaybackState(reset: Bool = false) {
+        let saveState = PlayQueueState(tracklist: tracklist,
+                                   originalTracklist: originalTracklist,
+                                   trackQueue: trackQueue,
+                                   currentTrack: currentTrack,
+                                   currentIndex: currentIndex,
+                                   currentPlaybackTime: reset ? 0 : audioPlayer?.currentTime ?? 0,
+                                   name: name,
+                                   originalName: originalName,
+                                   isShuffled: isShuffled)
+
+        if let data = try? JSONEncoder().encode(saveState) {
+            UserDefaults.standard.set(data, forKey: "savedPlayQueueState")
+        }
+    }
+    
+    @objc private func savePlaybackStateOnExit() {
+        savePlaybackState()
+    }
+    
+    private func loadPlaybackState() {
+        guard let data = UserDefaults.standard.data(forKey: saveStateKey) else { return }
+        let saveState = (try? JSONDecoder().decode(PlayQueueState.self, from: data)) ?? nil
+        if let state = saveState {
+            self.originalTracklist = state.originalTracklist
+            self.tracklist = state.tracklist
+            self.trackQueue = state.trackQueue
+            self.name = state.name
+            self.originalName = state.originalName
+            self.currentTrack = state.currentTrack
+            self.currentIndex = state.currentIndex
+            self.isShuffled = state.isShuffled
+        
+            if let track = currentTrack {
+                let fileManager = FileManager.default
+                do {
+                    let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+                    let trackPath = track.path
+                    let trackURL = documentsDirectory.appendingPathComponent(trackPath)
+                    
+                    audioPlayer = try AVAudioPlayer(contentsOf: trackURL)
+                    audioPlayer?.prepareToPlay()
+                    audioPlayer?.delegate = self
+                    audioPlayer?.currentTime = state.currentPlaybackTime
+                } catch {
+                    print("Error setting up save state track: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+}
+
+struct PlayQueueState: Codable {
+    var tracklist: [Track]
+    var originalTracklist: [Track]
+    var trackQueue: [Track]
+    var currentTrack: Track?
+    var currentIndex: Int?
+    var currentPlaybackTime: TimeInterval
+    var name: String
+    var originalName: String
+    var isShuffled: Bool
 }

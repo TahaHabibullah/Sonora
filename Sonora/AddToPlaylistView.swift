@@ -41,6 +41,8 @@ struct AddToPlaylistView: View {
                         Button(action: {
                             var playlist = playlists[index]
                             playlist.tracklist.append(track.id)
+                            let tracklist = TrackManager.shared.fetchPlaylist(from: playlist.tracklist)
+                            playlist.duration = Utils.shared.getPlaylistDuration(from: tracklist.map { $0.path })
                             PlaylistManager.shared.replacePlaylist(playlist)
                             showPopup = "Added to playlist"
                             presentationMode.wrappedValue.dismiss()
