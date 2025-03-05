@@ -164,7 +164,7 @@ struct LibraryView: View {
                         LazyVStack {
                             ForEach(sortedLooseTracks) { track in
                                 Button(action: {
-                                    playQueue.startPlaylistQueue(from: track, in: looseTracks)
+                                    playQueue.startShuffledQueue(from: track, tracks: looseTracks, playlistName: "Loose Tracks")
                                 }) {
                                     HStack {
                                         if let artwork = Utils.shared.loadImageFromDocuments(filePath: track.smallArtwork) {

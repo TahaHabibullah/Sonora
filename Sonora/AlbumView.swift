@@ -67,6 +67,7 @@ struct AlbumView: View {
                         .onAppear {
                             nameFieldFocused = true
                         }
+                        .autocorrectionDisabled(true)
                 }
                 else {
                     if !album.name.isEmpty {
@@ -100,6 +101,7 @@ struct AlbumView: View {
                             newArtist = album.artist
                             artistFieldFocused = true
                         }
+                        .autocorrectionDisabled(true)
                 }
                 else {
                     if !album.artist.isEmpty {
@@ -124,7 +126,7 @@ struct AlbumView: View {
                     HStack(spacing: 0) {
                         Button(action: {
                             haptics.impactOccurred()
-                            playQueue.startQueue(from: 0, in: album, tracks: tracklist)
+                            playQueue.startUnshuffledQueue(tracks: tracklist, playlistName: album.name)
                             album.lastPlayed = Date.now
                             AlbumManager.shared.replaceAlbum(album)
                         }) {
@@ -148,7 +150,7 @@ struct AlbumView: View {
                         
                         Button(action: {
                             haptics.impactOccurred()
-                            playQueue.startShuffledQueue(from: album, tracks: tracklist)
+                            playQueue.startShuffledQueue(tracks: tracklist, playlistName: album.name)
                             album.lastPlayed = Date.now
                             AlbumManager.shared.replaceAlbum(album)
                         }) {
@@ -175,7 +177,7 @@ struct AlbumView: View {
                 List {
                     ForEach(Array(tracklist.enumerated()), id: \.element) { index, element in
                         Button(action: {
-                            playQueue.startQueue(from: index, in: album, tracks: tracklist)
+                            playQueue.startUnshuffledQueue(from: element, tracks: tracklist, playlistName: album.name)
                             album.lastPlayed = Date.now
                             AlbumManager.shared.replaceAlbum(album)
                         }) {
@@ -188,6 +190,7 @@ struct AlbumView: View {
                                             newTitle = element.title
                                             trackFieldFocused = true
                                         }
+                                        .autocorrectionDisabled(true)
                                 }
                                 else {
                                     Text(element.title)

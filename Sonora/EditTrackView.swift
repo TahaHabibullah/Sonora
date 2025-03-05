@@ -84,6 +84,7 @@ struct EditTrackView: View {
                                         .foregroundColor(.gray),
                                     alignment: .bottom
                                 )
+                                .autocorrectionDisabled(true)
                         }
                         
                         VStack(spacing: 0) {
@@ -102,6 +103,7 @@ struct EditTrackView: View {
                                         .foregroundColor(.gray),
                                     alignment: .bottom
                                 )
+                                .autocorrectionDisabled(true)
                         }
                     }
                     .padding([.leading, .trailing])

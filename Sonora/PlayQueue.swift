@@ -14,13 +14,13 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var currentTrack: Track? = nil
     @Published var currentIndex: Int? = nil
     @Published var name: String = ""
+    @Published var originalName: String = ""
     @Published var tracklist: [Track] = []
     @Published var originalTracklist: [Track] = []
     @Published var trackQueue: [Track] = []
     @Published var isPlaying: Bool = false
     @Published var isShuffled: Bool = false
     @Published var audioPlayer: AVAudioPlayer?
-    @Published var originalName: String = ""
     private let saveStateKey = "savedPlayQueueState"
     var playbackTimer: Timer?
     
@@ -37,87 +37,45 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         }
     }
     
-    func startQueue(from track: Int, in album: Album, tracks: [Track]) {
-        currentIndex = track
-        if currentIndex != nil {
-            originalTracklist = tracks
-            tracklist = tracks
-            
-            originalName = album.name
-            name = album.name
-            isShuffled = false
-            playCurrentTrack()
-            startPlaybackUpdates()
-        }
-    }
-    
-    func startShuffledQueue(from album: Album, tracks: [Track]) {
-        currentIndex = 0
-        originalTracklist = tracks
-        originalName = album.name
-        name = album.name
-        
-        let shuffledIndices = tracks.indices.shuffled()
-        tracklist = shuffledIndices.map { tracks[$0] }
-        
-        isShuffled = true
-        playCurrentTrack()
-        startPlaybackUpdates()
-    }
-    
-    func startPlaylistQueue(from track: Track, in tracks: [Track], playlistName: String = "Loose Tracks") {
-        originalTracklist = tracks
-        originalName = playlistName
-        currentIndex = 0
-        
-        let tracklistIds = tracks.map { $0.id }
-        let trackIndex = tracklistIds.firstIndex(of: track.id)
-        var trackListCopy = tracks
-        trackListCopy.remove(at: trackIndex!)
-        
-        let shuffledIndices = trackListCopy.indices.shuffled()
-        var shuffledTracklist = shuffledIndices.map { trackListCopy[$0] }
-        shuffledTracklist.insert(track, at: 0)
-        
-        name = playlistName
-        tracklist = shuffledTracklist
-        isShuffled = true
-        playCurrentTrack()
-        startPlaybackUpdates()
-    }
-    
-    func startPlaylistQueueUnshuffled(from tracks: [Track], playlistName: String) {
+    func startUnshuffledQueue(from track: Track? = nil, tracks: [Track], playlistName: String) {
         originalTracklist = tracks
         tracklist = tracks
-        currentIndex = 0
+        originalName = playlistName
+        name = playlistName
         
-        if playlistName.isEmpty {
-            originalName = "Untitled Playlist"
-            name = "Untitled Playlist"
+        if let track = track {
+            let tracklistIds = tracks.map { $0.id }
+            currentIndex = tracklistIds.firstIndex(of: track.id)
         }
         else {
-            originalName = playlistName
-            name = playlistName
+            currentIndex = 0
         }
+        
         isShuffled = false
         playCurrentTrack()
         startPlaybackUpdates()
     }
     
-    func startPlaylistQueueShuffled(from tracks: [Track], playlistName: String) {
+    func startShuffledQueue(from track: Track? = nil, tracks: [Track], playlistName: String) {
         originalTracklist = tracks
-        currentIndex = 0
+        originalName = playlistName
+        name = playlistName
         
-        let shuffledIndices = tracks.indices.shuffled()
-        if playlistName.isEmpty {
-            originalName = "Untitled Playlist"
-            name = "Untitled Playlist"
+        if let track = track {
+            let tracklistIds = tracks.map { $0.id }
+            let trackIndex = tracklistIds.firstIndex(of: track.id)
+            var trackListCopy = tracks
+            trackListCopy.remove(at: trackIndex!)
+            
+            var shuffledTracklist = trackListCopy.shuffled()
+            shuffledTracklist.insert(track, at: 0)
+            tracklist = shuffledTracklist
         }
         else {
-            originalName = playlistName
-            name = playlistName
+            tracklist = tracks.shuffled()
         }
-        tracklist = shuffledIndices.map { tracks[$0] }
+        
+        currentIndex = 0
         isShuffled = true
         playCurrentTrack()
         startPlaybackUpdates()
@@ -187,7 +145,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         playCurrentTrack()
     }
 
-    private func playCurrentTrack() {
+    func playCurrentTrack() {
         let fileManager = FileManager.default
         
         do {
@@ -201,11 +159,9 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             audioPlayer?.play()
             isPlaying = true
             name = originalName
-            
             currentTrack = tracklist[currentIndex!]
             
             guard let player = audioPlayer else { return }
-            
             var nowPlayingInfo: [String: Any] = [
                 MPMediaItemPropertyTitle: tracklist[currentIndex!].title,
                 MPMediaItemPropertyArtist: tracklist[currentIndex!].artist,
@@ -488,6 +444,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             self.isShuffled = state.isShuffled
         
             if let track = currentTrack {
+                startPlaybackUpdates()
                 let fileManager = FileManager.default
                 do {
                     let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -498,6 +455,21 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
                     audioPlayer?.prepareToPlay()
                     audioPlayer?.delegate = self
                     audioPlayer?.currentTime = state.currentPlaybackTime
+                    
+                    guard let player = audioPlayer else { return }
+                    var nowPlayingInfo: [String: Any] = [
+                        MPMediaItemPropertyTitle: track.title,
+                        MPMediaItemPropertyArtist: track.artist,
+                        MPMediaItemPropertyPlaybackDuration: player.duration,
+                        MPNowPlayingInfoPropertyElapsedPlaybackTime: player.currentTime
+                    ]
+                    
+                    let artworkPath = track.artwork
+                    if let image = Utils.shared.loadImageFromDocuments(filePath: artworkPath) {
+                        let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+                        nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
+                    }
+                    MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
                 } catch {
                     print("Error setting up save state track: \(error.localizedDescription)")
                 }

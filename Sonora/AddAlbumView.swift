@@ -78,6 +78,7 @@ struct AddAlbumView: View {
                                         .foregroundColor(.gray),
                                     alignment: .bottom
                                 )
+                                .autocorrectionDisabled(true)
                         }
                         
                         VStack(spacing: 0) {
@@ -96,6 +97,7 @@ struct AddAlbumView: View {
                                         .foregroundColor(.gray),
                                     alignment: .bottom
                                 )
+                                .autocorrectionDisabled(true)
                         }
                     }
                     .padding([.leading, .trailing])

@@ -75,6 +75,7 @@ struct AddPlaylistView: View {
                                     .foregroundColor(.gray),
                                 alignment: .bottom
                             )
+                            .autocorrectionDisabled(true)
                     }
                     .padding([.leading, .trailing])
                     .padding(.top, 10)

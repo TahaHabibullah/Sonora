@@ -61,6 +61,7 @@ struct PlaylistView: View {
                         .onAppear {
                             nameFieldFocused = true
                         }
+                        .autocorrectionDisabled(true)
                 }
                 else {
                     if !playlist.name.isEmpty {
@@ -96,7 +97,7 @@ struct PlaylistView: View {
                     HStack(spacing: 0) {
                         Button(action: {
                             haptics.impactOccurred()
-                            playQueue.startPlaylistQueueUnshuffled(from: tracklist, playlistName: playlist.name)
+                            playQueue.startUnshuffledQueue(tracks: tracklist, playlistName: playlist.name)
                             playlist.lastPlayed = Date.now
                             PlaylistManager.shared.replacePlaylist(playlist)
                         }) {
@@ -120,7 +121,7 @@ struct PlaylistView: View {
                         
                         Button(action: {
                             haptics.impactOccurred()
-                            playQueue.startPlaylistQueueShuffled(from: tracklist, playlistName: playlist.name)
+                            playQueue.startShuffledQueue(tracks: tracklist, playlistName: playlist.name)
                             playlist.lastPlayed = Date.now
                             PlaylistManager.shared.replacePlaylist(playlist)
                         }) {
@@ -146,7 +147,7 @@ struct PlaylistView: View {
                     
                 ForEach(tracklist, id: \.self) { track in
                     Button(action: {
-                        playQueue.startPlaylistQueue(from: track, in: tracklist, playlistName: playlist.name)
+                        playQueue.startShuffledQueue(from: track, tracks: tracklist, playlistName: playlist.name)
                         playlist.lastPlayed = Date.now
                         PlaylistManager.shared.replacePlaylist(playlist)
                     }) {
