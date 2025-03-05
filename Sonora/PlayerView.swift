@@ -15,8 +15,8 @@ struct PlayerView: View {
     @Binding var isPresented: Bool
     @State var isQueuePresented: Bool = false
     @State private var sliderValue: Double = 0.0
-    @State private var timer: Timer?
     @State private var isEditing: Bool = false
+    @State private var timer: Timer?
     let selectionHaptics = UISelectionFeedbackGenerator()
     let impactHaptics = UIImpactFeedbackGenerator(style: .light)
     
@@ -112,7 +112,10 @@ struct PlayerView: View {
                         Slider(value: $sliderValue, in: 0...1, step: 0.001, onEditingChanged: { editing in
                             isEditing = editing
                             if !editing {
-                                playQueue.audioPlayer?.currentTime = sliderValue * playQueue.audioPlayer!.duration
+                                if let player = playQueue.audioPlayer {
+                                    let duration = player.currentItem?.duration.seconds ?? 1
+                                    player.seek(to: CMTime(seconds: sliderValue * duration, preferredTimescale: 600))
+                                }
                             }
                         })
                         .padding()
@@ -120,7 +123,8 @@ struct PlayerView: View {
                         .accentColor(.white)
                         
                         HStack {
-                            if let duration = playQueue.audioPlayer?.duration {
+                            if let player = playQueue.audioPlayer {
+                                let duration = player.currentItem?.duration.seconds ?? 1
                                 Text(formatTime(sliderValue * duration))
                                     .font(.subheadline)
                                 Spacer()
@@ -250,6 +254,8 @@ struct PlayerView: View {
                 .onAppear {
                     UISlider.appearance().setThumbImage(UIImage(systemName: "circle.fill"), for: .normal)
                     if playQueue.currentTrack != nil {
+                        guard let player = playQueue.audioPlayer else { return }
+                        sliderValue = CMTimeGetSeconds(player.currentTime()) / player.currentItem!.duration.seconds
                         startTimer()
                     }
                 }
@@ -262,15 +268,16 @@ struct PlayerView: View {
                 QueueView(isPresented: $isQueuePresented)
             }
     }
-
+    
     private func startTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-            guard let playQueue = playQueue.audioPlayer, !isEditing else { return }
-            sliderValue = playQueue.currentTime / playQueue.duration
+        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            guard let player = playQueue.audioPlayer, !isEditing else { return }
+            sliderValue = CMTimeGetSeconds(player.currentTime()) / player.currentItem!.duration.seconds
         }
     }
     
     private func formatTime(_ timeInterval: TimeInterval) -> String {
+        guard timeInterval.isFinite else { return "00:00" }
         let minutes = Int(timeInterval) / 60
         let seconds = Int(timeInterval) % 60
         return String(format: "%2d:%02d", minutes, seconds)

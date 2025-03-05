@@ -128,6 +128,13 @@ class Utils {
         }
         return result
     }
+    
+    func convertTrackToAVPlayerItem(from track: Track) -> AVPlayerItem {
+        let fileManager = FileManager.default
+        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let trackURL = documentsDirectory.appendingPathComponent(track.path)
+        return AVPlayerItem(url: trackURL)
+    }
 }
 
 struct ImagePicker: UIViewControllerRepresentable {

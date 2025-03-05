@@ -263,6 +263,13 @@ struct QueueView: View {
 
     private func moveQueueTrack(from source: IndexSet, to destination: Int) {
         playQueue.trackQueue.move(fromOffsets: source, toOffset: destination)
+        if destination == 0 {
+            DispatchQueue.global(qos: .background).async {
+                DispatchQueue.main.async {
+                    playQueue.replaceNextItem()
+                }
+            }
+        }
     }
     
     private func deleteTrack(at offsets: IndexSet) {
@@ -279,6 +286,13 @@ struct QueueView: View {
             if let currentIndex = playQueue.currentIndex {
                 indexOffset.insert(index + currentIndex+1)
                 playQueue.tracklist.move(fromOffsets: indexOffset, toOffset: destination + currentIndex+1)
+                if destination == 0 {
+                    DispatchQueue.global(qos: .background).async {
+                        DispatchQueue.main.async {
+                            playQueue.replaceNextItem()
+                        }
+                    }
+                }
             }
         }
     }
