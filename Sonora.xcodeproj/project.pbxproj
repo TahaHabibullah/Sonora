@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		0F4516372D68768A004D2173 /* MarqueeText in Frameworks */ = {isa = PBXBuildFile; productRef = 0F4516362D68768A004D2173 /* MarqueeText */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		0F39E2A72D38843E00B2724F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0F4516372D68768A004D2173 /* MarqueeText in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +130,7 @@
 			);
 			name = Sonora;
 			packageProductDependencies = (
+				0F4516362D68768A004D2173 /* MarqueeText */,
 			);
 			productName = MusicPlayer;
 			productReference = 0F39E2962D38843C00B2724F /* Sonora.app */;
@@ -208,6 +214,9 @@
 			);
 			mainGroup = 0F39E28D2D38843C00B2724F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				0F4516352D68766C004D2173 /* XCRemoteSwiftPackageReference "MarqueeText" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0F39E2972D38843C00B2724F /* Products */;
 			projectDirPath = "";
@@ -418,6 +427,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sonora/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Sonora;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_NSDocumentsFolderUsageDescription = "App requires access to Documents folder to read/write audio files imported to the app.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -432,9 +442,13 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.taha.Sonora;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -451,6 +465,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sonora/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Sonora;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_NSDocumentsFolderUsageDescription = "App requires access to Documents folder to read/write audio files imported to the app.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -465,9 +480,13 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.taha.Sonora;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -579,6 +598,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0F4516352D68766C004D2173 /* XCRemoteSwiftPackageReference "MarqueeText" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/strava/MarqueeText";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0F4516362D68768A004D2173 /* MarqueeText */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0F4516352D68766C004D2173 /* XCRemoteSwiftPackageReference "MarqueeText" */;
+			productName = MarqueeText;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 0F39E28E2D38843C00B2724F /* Project object */;
 }

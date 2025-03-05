@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "sonoralogo2.png",
+      "filename" : "sonoraheadphones.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -13,7 +13,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "sonoralogo2 1.png",
+      "filename" : "sonoraheadphones 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -25,7 +25,7 @@
           "value" : "tinted"
         }
       ],
-      "filename" : "sonoralogo2 2.png",
+      "filename" : "sonoraheadphonestinted.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
