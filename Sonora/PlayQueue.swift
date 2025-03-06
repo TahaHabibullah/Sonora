@@ -21,6 +21,8 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var isPlaying: Bool = false
     @Published var isShuffled: Bool = false
     @Published var audioPlayer: AVQueuePlayer?
+    @State private var isSeeking: Bool = false
+    private var info: [String : Any] = [:]
     private let saveStateKey = "savedPlayQueueState"
     var playbackTimer: Timer?
     
@@ -29,6 +31,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         setupRemoteTransportControls()
         observeAudioInterruptions()
         loadPlaybackState()
+        
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
             try AVAudioSession.sharedInstance().setActive(true)
@@ -57,7 +60,6 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         audioPlayer = AVQueuePlayer(items: [currentItem])
         audioPlayer?.play()
         playCurrentTrack()
-        startPlaybackUpdates()
     }
     
     func startShuffledQueue(from track: Track? = nil, tracks: [Track], playlistName: String) {
@@ -86,7 +88,6 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         audioPlayer = AVQueuePlayer(items: [currentItem])
         audioPlayer?.play()
         playCurrentTrack()
-        startPlaybackUpdates()
     }
     
     func shuffleTracks() {
@@ -129,7 +130,6 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             audioPlayer = AVQueuePlayer(items: [currentItem])
             audioPlayer?.play()
             playCurrentTrack()
-            startPlaybackUpdates()
         }
         else {
             if trackQueue.isEmpty {
@@ -170,7 +170,17 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             return
         }
         guard currentIndex! > 0 else {
-            audioPlayer?.seek(to: .zero)
+            audioPlayer?.seek(to: .zero, completionHandler: { finished in
+                if finished {
+                    DispatchQueue.main.async {
+                        self.info[MPNowPlayingInfoPropertyPlaybackRate] = 0
+                        MPNowPlayingInfoCenter.default().nowPlayingInfo = self.info
+                        self.info[MPNowPlayingInfoPropertyPlaybackRate] = 1
+                        self.info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0
+                        MPNowPlayingInfoCenter.default().nowPlayingInfo = self.info
+                    }
+                }
+            })
             return
         }
         let lastItem = Utils.shared.convertTrackToAVPlayerItem(from: tracklist[currentIndex!-1])
@@ -186,19 +196,19 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         isPlaying = true
         
         guard let player = audioPlayer else { return }
-        var nowPlayingInfo: [String: Any] = [
-            MPMediaItemPropertyTitle: currentTrack!.title,
-            MPMediaItemPropertyArtist: currentTrack!.artist,
-            MPMediaItemPropertyPlaybackDuration: CMTimeGetSeconds(player.currentItem!.asset.duration),
-            MPNowPlayingInfoPropertyElapsedPlaybackTime: 0
-        ]
+        info[MPMediaItemPropertyTitle] = self.currentTrack!.title
+        info[MPMediaItemPropertyArtist] = self.currentTrack!.artist
+        info[MPMediaItemPropertyPlaybackDuration] = CMTimeGetSeconds(player.currentItem!.asset.duration)
+        info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0
+        info[MPNowPlayingInfoPropertyPlaybackProgress] = 0
+        info[MPNowPlayingInfoPropertyPlaybackRate] = 1
         
         let artworkPath = currentTrack!.artwork
         if let image = Utils.shared.loadImageFromDocuments(filePath: artworkPath) {
             let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
-            nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
+            info[MPMediaItemPropertyArtwork] = artwork
         }
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
         
         if !trackQueue.isEmpty {
             let nextTrack = trackQueue.first!
@@ -215,16 +225,31 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     func pausePlayback() {
         audioPlayer?.pause()
         isPlaying = false
+        DispatchQueue.main.async {
+            if let player = self.audioPlayer {
+                let elapsedTime = CMTimeGetSeconds(player.currentTime())
+                self.info[MPNowPlayingInfoPropertyPlaybackRate] = 0
+                self.info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsedTime
+                MPNowPlayingInfoCenter.default().nowPlayingInfo = self.info
+            }
+        }
         savePlaybackState()
     }
     
     func resumePlayback() {
         audioPlayer?.play()
+        DispatchQueue.main.async {
+            if let player = self.audioPlayer {
+                let elapsedTime = CMTimeGetSeconds(player.currentTime())
+                self.info[MPNowPlayingInfoPropertyPlaybackRate] = 1
+                self.info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsedTime
+                MPNowPlayingInfoCenter.default().nowPlayingInfo = self.info
+            }
+        }
         isPlaying = true
     }
 
     func stopPlayback() {
-        stopPlaybackUpdates()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
         isPlaying = false
         audioPlayer = nil
@@ -262,7 +287,17 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         guard audioPlayer != nil else { return }
         let currentTime = CMTimeGetSeconds(audioPlayer?.currentTime() ?? CMTime.zero)
         if currentTime > 5 {
-            audioPlayer?.seek(to: .zero)
+            audioPlayer?.seek(to: .zero, completionHandler: { finished in
+                if finished {
+                    DispatchQueue.main.async {
+                        self.info[MPNowPlayingInfoPropertyPlaybackRate] = 0
+                        MPNowPlayingInfoCenter.default().nowPlayingInfo = self.info
+                        self.info[MPNowPlayingInfoPropertyPlaybackRate] = 1
+                        self.info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0
+                        MPNowPlayingInfoCenter.default().nowPlayingInfo = self.info
+                    }
+                }
+            })
         }
         else {
             playPreviousTrack()
@@ -271,30 +306,13 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     
     func updateNowPlayingInfo() {
         guard let player = audioPlayer else { return }
-        var nowPlayingInfo: [String: Any] = [
-            MPMediaItemPropertyTitle: currentTrack!.title,
-            MPMediaItemPropertyArtist: currentTrack!.artist,
-            MPMediaItemPropertyPlaybackDuration: player.currentItem?.duration.seconds ?? 1,
-            MPNowPlayingInfoPropertyElapsedPlaybackTime: CMTimeGetSeconds(player.currentTime())
-        ]
+        let duration = player.currentItem?.duration.seconds ?? 1
+        let elapsedTime = CMTimeGetSeconds(player.currentTime())
         
-        let artworkPath = currentTrack!.artwork
-        if let image = Utils.shared.loadImageFromDocuments(filePath: artworkPath) {
-            let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
-            nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
-        }
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
-    }
-    
-    func startPlaybackUpdates() {
-        playbackTimer?.invalidate()
-        playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
-            self.updateNowPlayingInfo()
-        }
-    }
-
-    func stopPlaybackUpdates() {
-        playbackTimer?.invalidate()
+        info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsedTime
+        info[MPNowPlayingInfoPropertyPlaybackProgress] = elapsedTime / duration
+        
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
     
     func replaceNextItem() {
@@ -311,6 +329,15 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
                 let nextItem = Utils.shared.convertTrackToAVPlayerItem(from: nextTrack)
                 audioPlayer?.insert(nextItem, after: nil)
             }
+        }
+    }
+    
+    func updateElapsedTime() {
+        guard let player = audioPlayer else { return }
+        DispatchQueue.main.async {
+            let elapsedTime = CMTimeGetSeconds(player.currentTime())
+            self.info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsedTime
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = self.info
         }
     }
     
@@ -340,7 +367,6 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         commandCenter.changePlaybackPositionCommand.addTarget { event in
             if let event = event as? MPChangePlaybackPositionCommandEvent {
                 self.audioPlayer?.seek(to: CMTime(seconds: event.positionTime, preferredTimescale: 600))
-                self.updateNowPlayingInfo()
             }
             return .success
         }
@@ -467,7 +493,21 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
                     audioPlayer?.insert(nextTrackItem, after: nil)
                 }
                 
-                startPlaybackUpdates()
+                guard let player = audioPlayer else { return }
+                let duration = CMTimeGetSeconds(player.currentItem!.asset.duration)
+                let elapsedTime = state.currentPlaybackTime
+                info[MPMediaItemPropertyTitle] = self.currentTrack!.title
+                info[MPMediaItemPropertyArtist] = self.currentTrack!.artist
+                info[MPMediaItemPropertyPlaybackDuration] = duration
+                info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsedTime
+                info[MPNowPlayingInfoPropertyPlaybackProgress] = elapsedTime / duration
+                
+                let artworkPath = currentTrack!.artwork
+                if let image = Utils.shared.loadImageFromDocuments(filePath: artworkPath) {
+                    let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+                    info[MPMediaItemPropertyArtwork] = artwork
+                }
+                MPNowPlayingInfoCenter.default().nowPlayingInfo = info
             }
         }
     }

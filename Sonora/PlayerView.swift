@@ -16,6 +16,7 @@ struct PlayerView: View {
     @State var isQueuePresented: Bool = false
     @State private var sliderValue: Double = 0.0
     @State private var isEditing: Bool = false
+    @State private var isSeeking: Bool = false
     @State private var timer: Timer?
     let selectionHaptics = UISelectionFeedbackGenerator()
     let impactHaptics = UIImpactFeedbackGenerator(style: .light)
@@ -112,9 +113,15 @@ struct PlayerView: View {
                         Slider(value: $sliderValue, in: 0...1, step: 0.001, onEditingChanged: { editing in
                             isEditing = editing
                             if !editing {
+                                isSeeking = true
                                 if let player = playQueue.audioPlayer {
                                     let duration = player.currentItem?.duration.seconds ?? 1
-                                    player.seek(to: CMTime(seconds: sliderValue * duration, preferredTimescale: 600))
+                                    player.seek(to: CMTime(seconds: sliderValue * duration, preferredTimescale: 600), completionHandler: { finished in
+                                        if finished {
+                                            isSeeking = false
+                                            playQueue.updateElapsedTime()
+                                        }
+                                    })
                                 }
                             }
                         })
@@ -238,16 +245,16 @@ struct PlayerView: View {
                         Image(systemName: "speaker.fill")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 20, height: 20)
+                            .frame(width: 16, height: 16)
                             .padding(.top, 5)
                         VolumeSlider()
                             .accentColor(.white)
                             .padding(.horizontal, 10)
-                            .padding(.top, 6)
+                            .padding(.top, 4)
                         Image(systemName: "speaker.wave.3.fill")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 30, height: 30)
+                            .frame(width: 24, height: 24)
                     }
                     .padding(.top, 20)
                 }
@@ -271,13 +278,13 @@ struct PlayerView: View {
     
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
-            guard let player = playQueue.audioPlayer, !isEditing else { return }
+            guard let player = playQueue.audioPlayer, !isEditing, !isSeeking else { return }
             sliderValue = CMTimeGetSeconds(player.currentTime()) / player.currentItem!.duration.seconds
         }
     }
     
     private func formatTime(_ timeInterval: TimeInterval) -> String {
-        guard timeInterval.isFinite else { return "00:00" }
+        guard timeInterval.isFinite else { return " 0:00" }
         let minutes = Int(timeInterval) / 60
         let seconds = Int(timeInterval) % 60
         return String(format: "%2d:%02d", minutes, seconds)
