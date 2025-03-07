@@ -15,11 +15,13 @@ struct PlaylistsView: View {
     let haptics = UIImpactFeedbackGenerator(style: .light)
     
     enum SortOption {
-        case recentPlayed, recentAdded, nameAsc, nameDesc
+        case firstAdded, recentPlayed, recentAdded, nameAsc, nameDesc
     }
     
     var sortedItems: [Playlist] {
         switch sortOption {
+        case .firstAdded:
+            return playlists
         case .recentPlayed:
             return playlists.sorted {
                 guard let date0 = $0.lastPlayed, let date1 = $1.lastPlayed else {
@@ -128,6 +130,17 @@ struct PlaylistsView: View {
                                     Text("Recently Played")
                                     Spacer()
                                     if sortOption == .recentPlayed {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: {
+                                sortOption = .firstAdded
+                            }) {
+                                HStack {
+                                    Text("First Added")
+                                    Spacer()
+                                    if sortOption == .firstAdded {
                                         Image(systemName: "checkmark")
                                     }
                                 }

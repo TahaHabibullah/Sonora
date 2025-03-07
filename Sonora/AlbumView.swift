@@ -19,7 +19,7 @@ struct AlbumView: View {
     @State private var editMode: EditMode = .inactive
     @State private var isEditingName = false
     @State private var isEditingArtist = false
-    @State private var editingTrackIndex: Int? = nil
+    @State private var trackToEdit: Track? = nil
     @State private var trackToAdd: Track? = nil
     @State private var newTitle: String = ""
     @State private var newArtist: String = ""
@@ -175,76 +175,60 @@ struct AlbumView: View {
                 }
                 
                 List {
-                    ForEach(Array(tracklist.enumerated()), id: \.element) { index, element in
+                    ForEach(tracklist, id: \.self) { track in
                         Button(action: {
-                            playQueue.startUnshuffledQueue(from: element, tracks: tracklist, playlistName: album.name)
+                            playQueue.startUnshuffledQueue(from: track, tracks: tracklist, playlistName: album.name)
                             album.lastPlayed = Date.now
                             AlbumManager.shared.replaceAlbum(album)
                         }) {
                             HStack {
-                                if editingTrackIndex == index {
-                                    TextField(element.title, text: $newTitle)
+                                VStack(alignment: .leading, spacing: 0) {
+                                    Text(track.title)
                                         .font(.subheadline)
-                                        .focused($trackFieldFocused)
-                                        .onAppear {
-                                            newTitle = element.title
-                                            trackFieldFocused = true
-                                        }
-                                        .autocorrectionDisabled(true)
-                                }
-                                else {
-                                    Text(element.title)
-                                        .font(.subheadline)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                    
+                                    Text(track.artist)
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
                                         .lineLimit(1)
                                         .truncationMode(.tail)
                                 }
                                 Spacer()
-                                Text(Utils.shared.getTrackDuration(from: element.path))
+                                Text(Utils.shared.getTrackDuration(from: track.path))
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
                                 
-                                if editingTrackIndex == index {
+                                Menu {
                                     Button(action: {
-                                        tracklist[index].title = newTitle
-                                        confirmTrackChanges()
+                                        trackToAdd = track
                                     }) {
-                                        Image(systemName: "checkmark")
-                                            .frame(width: 35, height: 50)
-                                            .foregroundColor(.blue)
+                                        Label("Add To Playlist", systemImage: "plus.square")
                                     }
-                                }
-                                else {
-                                    Menu {
-                                        Button(action: {
-                                            trackToAdd = element
-                                        }) {
-                                            Label("Add To Playlist", systemImage: "plus.square")
+                                    Button(action: {
+                                        playQueue.addToQueue(track)
+                                        withAnimation(.linear(duration: 0.25)) {
+                                            showPopup = "Added to queue"
                                         }
-                                        Button(action: {
-                                            playQueue.addToQueue(element)
-                                            withAnimation(.linear(duration: 0.25)) {
-                                                showPopup = "Added to queue"
-                                            }
-                                        }) {
-                                            Label("Add To Queue", systemImage: "text.badge.plus")
-                                        }
-                                        Button(action: {
-                                            editingTrackIndex = index
-                                        }) {
-                                            Label("Rename Track", systemImage: "pencil")
-                                        }
-                                    } label: {
-                                        HStack {
-                                            Image(systemName: "ellipsis")
-                                                .foregroundColor(.gray)
-                                        }
-                                        .frame(width: 35, height: 50)
+                                    }) {
+                                        Label("Add To Queue", systemImage: "text.badge.plus")
                                     }
-                                    .contentShape(Rectangle())
-                                    .simultaneousGesture(TapGesture().onEnded {
-                                        haptics.impactOccurred()
-                                    })
+                                    Button(action: {
+                                        trackToEdit = track
+                                    }) {
+                                        Label("Edit Track Details", systemImage: "pencil")
+                                    }
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "ellipsis")
+                                            .foregroundColor(.gray)
+                                    }
+                                    .frame(width: 35, height: 50)
                                 }
+                                .contentShape(Rectangle())
+                                .simultaneousGesture(TapGesture().onEnded {
+                                    haptics.impactOccurred()
+                                })
                             }
                             .frame(height: 40)
                         }
@@ -361,6 +345,20 @@ struct AlbumView: View {
             .sheet(item: $trackToAdd) { track in
                 AddToPlaylistView(showPopup: $showPopup, track: track)
             }
+            .sheet(item: $trackToEdit) { track in
+                EditTrackView(track: track)
+                    .onDisappear {
+                        tracklist = TrackManager.shared.fetchTracks(key: album.directory)
+                        if let index = tracklist.firstIndex(where: { $0.id == track.id }) {
+                            let artwork = tracklist[index].artwork
+                            let smallArtwork = tracklist[index].smallArtwork
+                            tracklist[index].artwork = ""
+                            tracklist[index].smallArtwork = ""
+                            tracklist[index].artwork = artwork
+                            tracklist[index].smallArtwork = smallArtwork
+                        }
+                    }
+            }
             .sheet(isPresented: $isFilePickerImagesPresented) {
                 ImageDocumentPicker(imageURL: $artworkUrl)
                     .onDisappear {
@@ -450,11 +448,6 @@ struct AlbumView: View {
         TrackManager.shared.replaceTracklist(tracklist, for: album.directory)
         AlbumManager.shared.replaceAlbum(album)
         isEditingArtist = false
-    }
-    
-    private func confirmTrackChanges() {
-        TrackManager.shared.replaceTracklist(tracklist, for: album.directory)
-        editingTrackIndex = nil
     }
     
     private func moveFile(from source: IndexSet, to destination: Int) {

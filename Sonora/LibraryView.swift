@@ -13,7 +13,6 @@ struct LibraryView: View {
     @EnvironmentObject var playQueue: PlayQueue
     @State private var isAddAlbumPresented = false
     @State private var isAddTracksPresented = false
-    @State private var isEditTrackPresented = false
     @State private var isFilePickerPresented = false
     @State private var showDeleteConfirmation = false
     @State private var showPopup: String = ""
@@ -221,7 +220,6 @@ struct LibraryView: View {
                                             }
                                             Button(action: {
                                                 trackToEdit = track
-                                                isEditTrackPresented = true
                                             }) {
                                                 Label("Edit Details", systemImage: "pencil")
                                             }
@@ -511,7 +509,6 @@ struct LibraryView: View {
                             looseTracks[index].artwork = artwork
                             looseTracks[index].smallArtwork = smallArtwork
                         }
-                        TrackManager.shared.replaceTracklist(looseTracks, for: "Loose_Tracks")
                     }
             }
             .sheet(item: $trackToAdd) { track in

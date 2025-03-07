@@ -130,6 +130,9 @@ struct EditTrackView: View {
                             TrackManager.shared.replaceTrack(track, from: String(track.path.prefix(upTo: index)))
                             presentationMode.wrappedValue.dismiss()
                         }
+                        else {
+                            presentationMode.wrappedValue.dismiss()
+                        }
                     }
                     .foregroundColor(.blue)
                 )

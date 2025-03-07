@@ -321,7 +321,10 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
 
     func skipTrack() {
-        isRepeatingTrack = false
+        if isRepeatingTrack {
+            isRepeatingTrack = false
+            replaceNextItem()
+        }
         playNextTrack()
     }
     
