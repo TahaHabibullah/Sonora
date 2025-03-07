@@ -187,6 +187,51 @@ struct QueueView: View {
                                     .font(.headline)
                                     .bold()
                                 Spacer()
+                                
+                                if playQueue.isRepeatingQueue {
+                                    Button(action: {
+                                        selectionHaptics.selectionChanged()
+                                        playQueue.isRepeatingTrack = true
+                                        playQueue.isRepeatingQueue = false
+                                        playQueue.replaceNextItem()
+                                    }) {
+                                        Image(systemName: "repeat")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 20, height: 20)
+                                            .foregroundColor(.blue)
+                                    }
+                                    .disabled(playQueue.currentTrack == nil)
+                                }
+                                else if playQueue.isRepeatingTrack {
+                                    Button(action: {
+                                        selectionHaptics.selectionChanged()
+                                        playQueue.isRepeatingTrack = false
+                                        playQueue.replaceNextItem()
+                                    }) {
+                                        Image(systemName: "repeat.1")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 20, height: 20)
+                                            .foregroundColor(.blue)
+                                    }
+                                    .disabled(playQueue.currentTrack == nil)
+                                }
+                                else {
+                                    Button(action: {
+                                        selectionHaptics.selectionChanged()
+                                        playQueue.isRepeatingQueue = true
+                                        playQueue.replaceNextItem()
+                                    }) {
+                                        Image(systemName: "repeat")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 20, height: 20)
+                                            .foregroundColor(.gray)
+                                    }
+                                    .disabled(playQueue.currentTrack == nil)
+                                }
+                                
                                 if playQueue.isShuffled {
                                     Button(action: {
                                         selectionHaptics.selectionChanged()
@@ -198,6 +243,7 @@ struct QueueView: View {
                                             .frame(width: 20, height: 20)
                                             .foregroundColor(.blue)
                                     }
+                                    .padding(.leading, 15)
                                     .disabled(playQueue.currentIndex == nil)
                                 }
                                 else {
@@ -211,6 +257,7 @@ struct QueueView: View {
                                             .frame(width: 20, height: 20)
                                             .foregroundColor(.gray)
                                     }
+                                    .padding(.leading, 15)
                                     .disabled(playQueue.tracklist.isEmpty)
                                 }
                             }
@@ -259,6 +306,13 @@ struct QueueView: View {
     
     private func deleteQueueTrack(at offsets: IndexSet) {
         playQueue.trackQueue.remove(atOffsets: offsets)
+        if offsets.first == 0 {
+            DispatchQueue.global(qos: .background).async {
+                DispatchQueue.main.async {
+                    playQueue.replaceNextItem()
+                }
+            }
+        }
     }
 
     private func moveQueueTrack(from source: IndexSet, to destination: Int) {
@@ -276,6 +330,13 @@ struct QueueView: View {
         if let index = offsets.first {
             if let currentIndex = playQueue.currentIndex {
                 playQueue.tracklist.remove(at: index + currentIndex+1)
+                if index == 0 {
+                    DispatchQueue.global(qos: .background).async {
+                        DispatchQueue.main.async {
+                            playQueue.replaceNextItem()
+                        }
+                    }
+                }
             }
         }
     }

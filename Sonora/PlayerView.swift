@@ -9,6 +9,7 @@ import SwiftUI
 import AVFoundation
 import MediaPlayer
 import MarqueeText
+import AVKit
 
 struct PlayerView: View {
     @EnvironmentObject var playQueue: PlayQueue
@@ -96,13 +97,20 @@ struct PlayerView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                         
                         VStack {
-                            Text("Not Playing")
-                                .font(.title2)
-                                .bold()
+                            MarqueeText(text: "Not Playing",
+                                        font: boldFont,
+                                        leftFade: 16,
+                                        rightFade: 16,
+                                        startDelay: 3,
+                                        alignment: .center)
                             
-                            Text("-")
-                                .font(.headline)
-                                .foregroundColor(.gray)
+                            MarqueeText(text: "-",
+                                        font: UIFont.preferredFont(forTextStyle: .headline),
+                                        leftFade: 16,
+                                        rightFade: 16,
+                                        startDelay: 3,
+                                        alignment: .center)
+                                        .foregroundColor(.gray)
                         }
                         .padding()
                     }
@@ -133,21 +141,25 @@ struct PlayerView: View {
                             if let player = playQueue.audioPlayer {
                                 let duration = player.currentItem?.duration.seconds ?? 1
                                 Text(formatTime(sliderValue * duration))
-                                    .font(.subheadline)
+                                    .font(.caption)
+                                    .padding(.top, -5)
                                 Spacer()
                                 Text("-" + formatTime(duration - sliderValue * duration))
-                                    .font(.subheadline)
+                                    .font(.caption)
+                                    .padding(.top, -5)
                             }
                             else {
                                 Text("--:--")
-                                    .font(.subheadline)
+                                    .font(.caption)
+                                    .padding(.top, -5)
                                 Spacer()
                                 Text("--:--")
-                                    .font(.subheadline)
+                                    .font(.caption)
+                                    .padding(.top, -5)
                             }
                         }
                     }
-                    .padding(.top, 30)
+                    .padding(.top, 40)
                     
                     HStack {
                         if playQueue.isShuffled {
@@ -226,20 +238,54 @@ struct PlayerView: View {
                                 .padding()
                         }
                         
-                        Button(action: {
-                            impactHaptics.impactOccurred()
-                            isQueuePresented = true
-                        }) {
-                            Image(systemName: "list.triangle")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 20, height: 20)
-                                .foregroundColor(.gray)
-                                .padding()
+                        if playQueue.isRepeatingQueue {
+                            Button(action: {
+                                selectionHaptics.selectionChanged()
+                                playQueue.isRepeatingTrack = true
+                                playQueue.isRepeatingQueue = false
+                                playQueue.replaceNextItem()
+                            }) {
+                                Image(systemName: "repeat")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 20, height: 20)
+                                    .foregroundColor(.blue)
+                                    .padding()
+                            }
+                            .disabled(playQueue.currentTrack == nil)
                         }
-                        .disabled(playQueue.currentTrack == nil)
+                        else if playQueue.isRepeatingTrack {
+                            Button(action: {
+                                selectionHaptics.selectionChanged()
+                                playQueue.isRepeatingTrack = false
+                                playQueue.replaceNextItem()
+                            }) {
+                                Image(systemName: "repeat.1")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 20, height: 20)
+                                    .foregroundColor(.blue)
+                                    .padding()
+                            }
+                            .disabled(playQueue.currentTrack == nil)
+                        }
+                        else {
+                            Button(action: {
+                                selectionHaptics.selectionChanged()
+                                playQueue.isRepeatingQueue = true
+                                playQueue.replaceNextItem()
+                            }) {
+                                Image(systemName: "repeat")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 20, height: 20)
+                                    .foregroundColor(.gray)
+                                    .padding()
+                            }
+                            .disabled(playQueue.currentTrack == nil)
+                        }
                     }
-                    .padding(.top, 30)
+                    .padding(.top, 10)
                     
                     HStack(alignment: .top) {
                         Image(systemName: "speaker.fill")
@@ -257,6 +303,29 @@ struct PlayerView: View {
                             .frame(width: 24, height: 24)
                     }
                     .padding(.top, 20)
+                    
+                    HStack {
+                        Spacer()
+                        RouteButtonView()
+                            .frame(width: 50, height: 50)
+                            .padding(.trailing, 10)
+                        
+                        Button(action: {
+                            impactHaptics.impactOccurred()
+                            isQueuePresented = true
+                        }) {
+                            Image(systemName: "list.triangle")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 25, height: 25)
+                                .foregroundColor(.gray)
+                                .padding()
+                        }
+                        .disabled(playQueue.currentTrack == nil)
+                        .padding(.leading, 10)
+                        Spacer()
+                    }
+                    .padding(.bottom, 10)
                 }
                 .onAppear {
                     UISlider.appearance().setThumbImage(UIImage(systemName: "circle.fill"), for: .normal)
@@ -311,4 +380,15 @@ class MPVolumeViewController: UIViewController {
         volumeView.showsRouteButton = false
         self.view.addSubview(volumeView)
     }
+}
+
+struct RouteButtonView: UIViewRepresentable {
+    func makeUIView(context: Context) -> AVRoutePickerView {
+        let routePickerView = AVRoutePickerView()
+        routePickerView.tintColor = .gray
+        routePickerView.activeTintColor = .systemBlue
+        return routePickerView
+    }
+    
+    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
 }

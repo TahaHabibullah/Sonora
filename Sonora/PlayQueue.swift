@@ -20,6 +20,8 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var trackQueue: [Track] = []
     @Published var isPlaying: Bool = false
     @Published var isShuffled: Bool = false
+    @Published var isRepeatingTrack: Bool = false
+    @Published var isRepeatingQueue: Bool = false
     @Published var audioPlayer: AVQueuePlayer?
     @State private var isSeeking: Bool = false
     private var info: [String : Any] = [:]
@@ -55,6 +57,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         }
         
         isShuffled = false
+        isRepeatingTrack = false
         currentTrack = tracklist[currentIndex!]
         let currentItem = Utils.shared.convertTrackToAVPlayerItem(from: tracklist[currentIndex!])
         audioPlayer = AVQueuePlayer(items: [currentItem])
@@ -83,6 +86,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         
         currentIndex = 0
         isShuffled = true
+        isRepeatingTrack = false
         currentTrack = tracklist[0]
         let currentItem = Utils.shared.convertTrackToAVPlayerItem(from: tracklist[0])
         audioPlayer = AVQueuePlayer(items: [currentItem])
@@ -123,6 +127,8 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     func addToQueue(_ track: Track) {
         if currentIndex == nil {
             isShuffled = false
+            isRepeatingTrack = false
+            isRepeatingQueue = false
             currentIndex = 0
             originalName = "Queue"
             currentTrack = track
@@ -143,19 +149,42 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
 
     func playNextTrack() {
+        if isRepeatingTrack {
+            audioPlayer?.advanceToNextItem()
+            audioPlayer?.play()
+            isPlaying = true
+            playCurrentTrack()
+            return
+        }
         if trackQueue.isEmpty {
             guard currentIndex != nil else {
                 stopPlayback()
                 return
             }
             guard currentIndex! < tracklist.count-1 else {
+                if isRepeatingQueue {
+                    if originalTracklist.isEmpty {
+                        stopPlayback()
+                        return
+                    }
+                    if isShuffled {
+                        startShuffledQueue(tracks: originalTracklist, playlistName: originalName)
+                        return
+                    }
+                    else {
+                        startUnshuffledQueue(tracks: originalTracklist, playlistName: originalName)
+                        return
+                    }
+                }
                 stopPlayback()
                 return
             }
+            name = originalName
             currentIndex!+=1
             currentTrack = tracklist[currentIndex!]
         }
         else {
+            name = "Queue"
             currentTrack = trackQueue.removeFirst()
         }
         audioPlayer?.advanceToNextItem()
@@ -192,7 +221,6 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
 
     func playCurrentTrack() {
-        name = originalName
         isPlaying = true
         
         guard let player = audioPlayer else { return }
@@ -210,14 +238,18 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         }
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
         
-        if !trackQueue.isEmpty {
+        if isRepeatingTrack {
+            let nextItem = Utils.shared.convertTrackToAVPlayerItem(from: currentTrack!)
+            audioPlayer?.insert(nextItem, after: nil)
+        }
+        else if !trackQueue.isEmpty {
             let nextTrack = trackQueue.first!
-            let nextTrackItem = Utils.shared.convertTrackToAVPlayerItem(from: nextTrack)
-            audioPlayer?.insert(nextTrackItem, after: nil)
+            let nextItem = Utils.shared.convertTrackToAVPlayerItem(from: nextTrack)
+            audioPlayer?.insert(nextItem, after: nil)
         }
         else if currentIndex! < tracklist.count-1 {
-            let nextTrackItem = Utils.shared.convertTrackToAVPlayerItem(from: tracklist[currentIndex!+1])
-            audioPlayer?.insert(nextTrackItem, after: nil)
+            let nextItem = Utils.shared.convertTrackToAVPlayerItem(from: tracklist[currentIndex!+1])
+            audioPlayer?.insert(nextItem, after: nil)
         }
         savePlaybackState()
     }
@@ -256,7 +288,12 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         currentIndex = nil
         currentTrack = nil
         isShuffled = false
+        isRepeatingTrack = false
+        isRepeatingQueue = false
+        tracklist = []
+        originalTracklist = []
         name = ""
+        originalName = ""
         savePlaybackState(reset: true)
     }
     
@@ -266,6 +303,8 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         let currentItem = Utils.shared.convertTrackToAVPlayerItem(from: tracklist[index])
         audioPlayer = AVQueuePlayer(items: [currentItem])
         audioPlayer?.play()
+        name = originalName
+        isRepeatingTrack = false
         playCurrentTrack()
     }
     
@@ -276,10 +315,13 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         let trackItem = Utils.shared.convertTrackToAVPlayerItem(from: track)
         audioPlayer = AVQueuePlayer(items: [trackItem])
         audioPlayer?.play()
+        name = "Queue"
+        isRepeatingTrack = false
         playCurrentTrack()
     }
 
     func skipTrack() {
+        isRepeatingTrack = false
         playNextTrack()
     }
     
@@ -300,6 +342,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             })
         }
         else {
+            isRepeatingTrack = false
             playPreviousTrack()
         }
     }
@@ -320,9 +363,15 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             if items.count > 1 {
                 audioPlayer?.remove(items[1])
             }
-            if trackQueue.isEmpty {
-                let nextItem = Utils.shared.convertTrackToAVPlayerItem(from: tracklist[currentIndex!+1])
+            if isRepeatingTrack {
+                let nextItem = Utils.shared.convertTrackToAVPlayerItem(from: currentTrack!)
                 audioPlayer?.insert(nextItem, after: nil)
+            }
+            else if trackQueue.isEmpty {
+                if currentIndex! < tracklist.count-1 {
+                    let nextItem = Utils.shared.convertTrackToAVPlayerItem(from: tracklist[currentIndex!+1])
+                    audioPlayer?.insert(nextItem, after: nil)
+                }
             }
             else {
                 let nextTrack = trackQueue.first!
@@ -455,7 +504,9 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
                                    currentPlaybackTime: audioPlayer?.currentTime().seconds ?? 0.0,
                                    name: name,
                                    originalName: originalName,
-                                   isShuffled: isShuffled)
+                                   isShuffled: isShuffled,
+                                   isRepeatingTrack: isRepeatingTrack,
+                                   isRepeatingQueue: isRepeatingQueue)
 
         if let data = try? JSONEncoder().encode(saveState) {
             UserDefaults.standard.set(data, forKey: "savedPlayQueueState")
@@ -478,6 +529,8 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             self.currentTrack = state.currentTrack
             self.currentIndex = state.currentIndex
             self.isShuffled = state.isShuffled
+            self.isRepeatingTrack = state.isRepeatingTrack
+            self.isRepeatingQueue = state.isRepeatingQueue
         
             if let track = currentTrack {
                 let currentItem = Utils.shared.convertTrackToAVPlayerItem(from: track)
@@ -523,4 +576,6 @@ struct PlayQueueState: Codable {
     var name: String
     var originalName: String
     var isShuffled: Bool
+    var isRepeatingTrack: Bool
+    var isRepeatingQueue: Bool
 }
