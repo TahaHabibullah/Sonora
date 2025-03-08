@@ -62,7 +62,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         let currentItem = Utils.shared.convertTrackToAVPlayerItem(from: tracklist[currentIndex!])
         audioPlayer = AVQueuePlayer(items: [currentItem])
         audioPlayer?.play()
-        playCurrentTrack()
+        loadInfoAndNextTrack()
     }
     
     func startShuffledQueue(from track: Track? = nil, tracks: [Track], playlistName: String) {
@@ -91,7 +91,23 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         let currentItem = Utils.shared.convertTrackToAVPlayerItem(from: tracklist[0])
         audioPlayer = AVQueuePlayer(items: [currentItem])
         audioPlayer?.play()
-        playCurrentTrack()
+        loadInfoAndNextTrack()
+    }
+    
+    func playSingleTrack(track: Track) {
+        originalName = ""
+        originalTracklist = []
+        tracklist = []
+        name = "Library"
+        currentIndex = 0
+        isShuffled = false
+        isRepeatingTrack = false
+        isRepeatingQueue = false
+        currentTrack = track
+        let currentItem = Utils.shared.convertTrackToAVPlayerItem(from: track)
+        audioPlayer = AVQueuePlayer(items: [currentItem])
+        audioPlayer?.play()
+        loadInfoAndNextTrack()
     }
     
     func shuffleTracks() {
@@ -131,11 +147,12 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             isRepeatingQueue = false
             currentIndex = 0
             originalName = "Queue"
+            name = "Queue"
             currentTrack = track
             let currentItem = Utils.shared.convertTrackToAVPlayerItem(from: track)
             audioPlayer = AVQueuePlayer(items: [currentItem])
             audioPlayer?.play()
-            playCurrentTrack()
+            loadInfoAndNextTrack()
         }
         else {
             if trackQueue.isEmpty {
@@ -153,7 +170,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
             audioPlayer?.advanceToNextItem()
             audioPlayer?.play()
             isPlaying = true
-            playCurrentTrack()
+            loadInfoAndNextTrack()
             return
         }
         if trackQueue.isEmpty {
@@ -190,7 +207,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         audioPlayer?.advanceToNextItem()
         audioPlayer?.play()
         isPlaying = true
-        playCurrentTrack()
+        loadInfoAndNextTrack()
     }
     
     func playPreviousTrack() {
@@ -217,10 +234,10 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         audioPlayer = AVQueuePlayer(items: [lastItem])
         audioPlayer?.play()
         currentTrack = tracklist[currentIndex!]
-        playCurrentTrack()
+        loadInfoAndNextTrack()
     }
 
-    func playCurrentTrack() {
+    func loadInfoAndNextTrack() {
         isPlaying = true
         
         guard let player = audioPlayer else { return }
@@ -305,7 +322,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         audioPlayer?.play()
         name = originalName
         isRepeatingTrack = false
-        playCurrentTrack()
+        loadInfoAndNextTrack()
     }
     
     func skipQueueToTrack(_ index: Int) {
@@ -317,7 +334,7 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         audioPlayer?.play()
         name = "Queue"
         isRepeatingTrack = false
-        playCurrentTrack()
+        loadInfoAndNextTrack()
     }
 
     func skipTrack() {
@@ -539,6 +556,11 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
                 let currentItem = Utils.shared.convertTrackToAVPlayerItem(from: track)
                 audioPlayer = AVQueuePlayer(items: [currentItem])
                 audioPlayer?.seek(to: CMTime(seconds: state.currentPlaybackTime, preferredTimescale: 600))
+                
+                if isRepeatingTrack {
+                    let nextItem = Utils.shared.convertTrackToAVPlayerItem(from: currentTrack!)
+                    audioPlayer?.insert(nextItem, after: nil)
+                }
                 if !trackQueue.isEmpty {
                     let nextTrack = trackQueue.first!
                     let nextTrackItem = Utils.shared.convertTrackToAVPlayerItem(from: nextTrack)

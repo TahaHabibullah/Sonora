@@ -19,10 +19,15 @@ struct LibraryView: View {
     @State private var selectedFiles: [URL] = []
     @State private var albums: [Album] = []
     @State private var looseTracks: [Track] = []
+    @State private var allTracks: [Track] = []
+    @State private var albumResults: [Album] = []
+    @State private var trackResults: [Track] = []
     @State private var trackToEdit: Track? = nil
     @State private var trackToDelete: Track? = nil
     @State private var trackToAdd: Track? = nil
     @State private var selectedTab: Int = 0
+    @State private var searchText: String = ""
+    @State private var isSearching: Bool = false
     @State private var sortOptionAlbum: SortOption = .recentPlayed
     @State private var sortOptionLooseTracks: SortOption = .firstAdded
     let haptics = UIImpactFeedbackGenerator(style: .light)
@@ -84,17 +89,31 @@ struct LibraryView: View {
         let gridItemSize = (screenWidth - 48) / 2
         
         NavigationStack {
-            Picker(selection: $selectedTab, label: Text("")) {
-                Text("Albums").tag(0)
-                Text("Loose Tracks").tag(1)
-            }
-            .pickerStyle(SegmentedPickerStyle())
-            .onChange(of: selectedTab) { _ in
-                haptics.impactOccurred()
+            SearchLibraryView(isPresented: $isSearching,
+                              albumResults: $albumResults,
+                              trackResults: $trackResults)
+                .searchable(text: $searchText, prompt: "Search in Library")
+                .onChange(of: searchText, perform: { text in
+                    albumResults = searchText.isEmpty ? [] : sortedAlbums.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+                    trackResults = searchText.isEmpty ? [] : allTracks.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+                })
+            
+            if !isSearching {
+                Picker(selection: $selectedTab, label: Text("")) {
+                    Text("Albums").tag(0)
+                    Text("Loose Tracks").tag(1)
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .onChange(of: selectedTab) { _ in
+                    haptics.impactOccurred()
+                }
             }
                 
             VStack {
-                if selectedTab == 0 {
+                if isSearching {
+                    
+                }
+                else if selectedTab == 0 {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(sortedAlbums) { album in
@@ -267,6 +286,7 @@ struct LibraryView: View {
             .onAppear {
                 albums = AlbumManager.shared.fetchAlbums()
                 looseTracks = TrackManager.shared.fetchTracks(key: "Loose_Tracks")
+                allTracks = TrackManager.shared.fetchAllTracks()
             }
             .navigationTitle("Library")
             .toolbar {

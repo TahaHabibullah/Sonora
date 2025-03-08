@@ -145,14 +145,14 @@ struct PlaylistView: View {
                     }
                 }
                     
-                ForEach(tracklist, id: \.self) { track in
+                ForEach(Array(tracklist.enumerated()), id: \.element) { index, element in
                     Button(action: {
-                        playQueue.startShuffledQueue(from: track, tracks: tracklist, playlistName: playlist.name)
+                        playQueue.startShuffledQueue(from: element, tracks: tracklist, playlistName: playlist.name)
                         playlist.lastPlayed = Date.now
                         PlaylistManager.shared.replacePlaylist(playlist)
                     }) {
                         HStack {
-                            if let artwork = Utils.shared.loadImageFromDocuments(filePath: track.smallArtwork) {
+                            if let artwork = Utils.shared.loadImageFromDocuments(filePath: element.smallArtwork) {
                                 Image(uiImage: artwork)
                                     .resizable()
                                     .scaledToFit()
@@ -170,15 +170,15 @@ struct PlaylistView: View {
                             }
                             VStack(spacing: 0) {
                                 HStack {
-                                    Text(track.title)
+                                    Text(element.title)
                                         .font(.subheadline)
                                         .lineLimit(1)
                                         .truncationMode(.tail)
                                     Spacer()
                                 }
                                 HStack {
-                                    if !track.artist.isEmpty {
-                                        Text(track.artist)
+                                    if !element.artist.isEmpty {
+                                        Text(element.artist)
                                             .foregroundColor(.gray)
                                             .font(.caption)
                                             .lineLimit(1)
@@ -195,18 +195,18 @@ struct PlaylistView: View {
                                 }
                             }
                             Spacer()
-                            Text(track.duration)
+                            Text(element.duration)
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
                             
                             Menu {
                                 Button(action: {
-                                    trackToAdd = track
+                                    trackToAdd = element
                                 }) {
                                     Label("Add To Playlist", systemImage: "plus.square")
                                 }
                                 Button(action: {
-                                    playQueue.addToQueue(track)
+                                    playQueue.addToQueue(element)
                                     withAnimation(.linear(duration: 0.25)) {
                                         showPopup = "Added to queue"
                                     }
@@ -214,9 +214,15 @@ struct PlaylistView: View {
                                     Label("Add To Queue", systemImage: "text.badge.plus")
                                 }
                                 Button(action: {
-                                    trackToEdit = track
+                                    trackToEdit = element
                                 }) {
                                     Label("Edit Track Details", systemImage: "pencil")
+                                }
+                                Button(role: .destructive, action: {
+                                    PlaylistManager.shared.removeTrackFromPlaylist(for: element.id, in: playlist)
+                                    tracklist.remove(at: index)
+                                }) {
+                                    Label("Delete From Playlist", systemImage: "trash")
                                 }
                             } label: {
                                 HStack {
