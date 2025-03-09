@@ -14,6 +14,7 @@ struct LibraryView: View {
     @State private var isAddAlbumPresented = false
     @State private var isAddTracksPresented = false
     @State private var isFilePickerPresented = false
+    @State private var isAddToPlaylistPresented = false
     @State private var showDeleteConfirmation = false
     @State private var showPopup: String = ""
     @State private var selectedFiles: [URL] = []
@@ -25,6 +26,8 @@ struct LibraryView: View {
     @State private var trackToEdit: Track? = nil
     @State private var trackToDelete: Track? = nil
     @State private var trackToAdd: Track? = nil
+    @State private var tracklistToAdd: [Track] = []
+    @State private var albumToDelete: Album? = nil
     @State private var selectedTab: Int = 0
     @State private var searchText: String = ""
     @State private var isSearching: Bool = false
@@ -169,6 +172,67 @@ struct LibraryView: View {
                                         }
                                         .padding(.top, 4)
                                     }
+                                    .contextMenu {
+                                        let tracklist = TrackManager.shared.fetchTracks(key: album.directory)
+                                        if !tracklist.isEmpty {
+                                            Button(action: {
+                                                playQueue.startUnshuffledQueue(tracks: tracklist, playlistName: album.name)
+                                            }) {
+                                                Label("Play", systemImage: "play.fill")
+                                            }
+                                            Button(action: {
+                                                playQueue.startShuffledQueue(tracks: tracklist, playlistName: album.name)
+                                            }) {
+                                                Label("Play Shuffled", systemImage: "shuffle")
+                                            }
+                                            Button(action: {
+                                                tracklistToAdd = tracklist
+                                            }) {
+                                                Label("Add To Playlist", systemImage: "plus.square")
+                                            }
+                                            Button(action: {
+                                                playQueue.prependToQueue(tracklist)
+                                                withAnimation(.linear(duration: 0.25)) {
+                                                    showPopup = "Added to queue"
+                                                }
+                                            }) {
+                                                Label("Play Next", systemImage: "text.line.first.and.arrowtriangle.forward")
+                                            }
+                                            if !playQueue.trackQueue.isEmpty {
+                                                Button(action: {
+                                                    for track in tracklist {
+                                                        playQueue.appendToQueue(track)
+                                                    }
+                                                    withAnimation(.linear(duration: 0.25)) {
+                                                        showPopup = "Added to queue"
+                                                    }
+                                                }) {
+                                                    Label("Add To Queue", systemImage: "text.line.last.and.arrowtriangle.forward")
+                                                }
+                                            }
+                                        }
+                                        Button(role: .destructive, action: {
+                                            albumToDelete = album
+                                        }) {
+                                            Label("Delete Album", systemImage: "trash")
+                                        }
+                                    }
+                                    .confirmationDialog("Are you sure you want to delete this album?",
+                                                        isPresented: Binding(get: { albumToDelete != nil },
+                                                                             set: { if !$0 { albumToDelete = nil }}),
+                                                        titleVisibility: .visible) {
+                                        Button("Delete", role: .destructive) {
+                                            if let album = albumToDelete {
+                                                AlbumManager.shared.deleteAlbum(album)
+                                                TrackManager.shared.deleteAlbumTracklist(from: album.directory)
+                                                albumToDelete = nil
+                                                albums = AlbumManager.shared.fetchAlbums()
+                                            }
+                                        }
+                                        Button("Cancel", role: .cancel) {
+                                            albumToDelete = nil
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -230,12 +294,22 @@ struct LibraryView: View {
                                                 Label("Add To Playlist", systemImage: "plus.square")
                                             }
                                             Button(action: {
-                                                playQueue.addToQueue(track)
+                                                playQueue.prependToQueue(track)
                                                 withAnimation(.linear(duration: 0.25)) {
                                                     showPopup = "Added to queue"
                                                 }
                                             }) {
-                                                Label("Add To Queue", systemImage: "text.badge.plus")
+                                                Label("Play Next", systemImage: "text.line.first.and.arrowtriangle.forward")
+                                            }
+                                            if !playQueue.trackQueue.isEmpty {
+                                                Button(action: {
+                                                    playQueue.appendToQueue(track)
+                                                    withAnimation(.linear(duration: 0.25)) {
+                                                        showPopup = "Added to queue"
+                                                    }
+                                                }) {
+                                                    Label("Add To Queue", systemImage: "text.line.last.and.arrowtriangle.forward")
+                                                }
                                             }
                                             Button(action: {
                                                 trackToEdit = track
@@ -533,6 +607,10 @@ struct LibraryView: View {
             }
             .sheet(item: $trackToAdd) { track in
                 AddToPlaylistView(showPopup: $showPopup, track: track)
+            }
+            .sheet(isPresented: Binding(get: { !tracklistToAdd.isEmpty },
+                                        set: { if !$0 { tracklistToAdd = [] }})) {
+                AddToPlaylistView(showPopup: $showPopup, tracklist: tracklistToAdd)
             }
         }
     }

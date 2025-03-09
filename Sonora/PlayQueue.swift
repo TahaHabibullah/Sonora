@@ -140,7 +140,51 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
         replaceNextItem()
     }
     
-    func addToQueue(_ track: Track) {
+    func prependToQueue(_ track: Track) {
+        if currentIndex == nil {
+            isShuffled = false
+            isRepeatingTrack = false
+            isRepeatingQueue = false
+            currentIndex = 0
+            originalName = "Queue"
+            name = "Queue"
+            currentTrack = track
+            let currentItem = Utils.shared.convertTrackToAVPlayerItem(from: track)
+            audioPlayer = AVQueuePlayer(items: [currentItem])
+            audioPlayer?.play()
+            loadInfoAndNextTrack()
+        }
+        else {
+            trackQueue.insert(track, at: 0)
+            replaceNextItem()
+        }
+    }
+    
+    func prependToQueue(_ tracklist: [Track]) {
+        if currentIndex == nil {
+            isShuffled = false
+            isRepeatingTrack = false
+            isRepeatingQueue = false
+            currentIndex = 0
+            originalName = "Queue"
+            name = "Queue"
+            currentTrack = tracklist[0]
+            let currentItem = Utils.shared.convertTrackToAVPlayerItem(from: tracklist[0])
+            audioPlayer = AVQueuePlayer(items: [currentItem])
+            audioPlayer?.play()
+            trackQueue.append(contentsOf: tracklist.suffix(from: 1))
+            loadInfoAndNextTrack()
+        }
+        else {
+            let reversed = tracklist.reversed()
+            for track in reversed {
+                trackQueue.insert(track, at: 0)
+            }
+            replaceNextItem()
+        }
+    }
+    
+    func appendToQueue(_ track: Track) {
         if currentIndex == nil {
             isShuffled = false
             isRepeatingTrack = false
@@ -163,6 +207,11 @@ class PlayQueue: NSObject, ObservableObject, AVAudioPlayerDelegate {
                 trackQueue.append(track)
             }
         }
+    }
+    
+    func clearTrackQueue() {
+        trackQueue = []
+        replaceNextItem()
     }
 
     func playNextTrack() {

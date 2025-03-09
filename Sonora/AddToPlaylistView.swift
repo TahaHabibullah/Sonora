@@ -10,7 +10,8 @@ import SwiftUI
 struct AddToPlaylistView: View {
     @Environment(\.presentationMode) var presentationMode
     @Binding var showPopup: String
-    @State var track: Track
+    @State var track: Track? = nil
+    @State var tracklist: [Track] = []
     @State var playlists: [Playlist] = []
     @State private var isAddPlaylistPresented: Bool = false
     
@@ -39,13 +40,29 @@ struct AddToPlaylistView: View {
                     }
                     ForEach(Array(playlists.enumerated()), id:\.element) { index, element in
                         Button(action: {
-                            var playlist = playlists[index]
-                            playlist.tracklist.append(track.id)
-                            let tracklist = TrackManager.shared.fetchPlaylist(from: playlist.tracklist)
-                            playlist.duration = Utils.shared.getPlaylistDuration(from: tracklist.map { $0.path })
-                            PlaylistManager.shared.replacePlaylist(playlist)
-                            showPopup = "Added to playlist"
-                            presentationMode.wrappedValue.dismiss()
+                            if let track = track {
+                                var playlist = playlists[index]
+                                playlist.tracklist.append(track.id)
+                                let tracklist = TrackManager.shared.fetchPlaylist(from: playlist.tracklist)
+                                playlist.duration = Utils.shared.getPlaylistDuration(from: tracklist.map { $0.path })
+                                PlaylistManager.shared.replacePlaylist(playlist)
+                                showPopup = "Added to playlist"
+                                presentationMode.wrappedValue.dismiss()
+                            }
+                            else {
+                                var playlist = playlists[index]
+                                let idSet = Set(playlist.tracklist)
+                                for track in tracklist {
+                                    if !idSet.contains(track.id) {
+                                        playlist.tracklist.append(track.id)
+                                    }
+                                }
+                                let tracklist = TrackManager.shared.fetchPlaylist(from: playlist.tracklist)
+                                playlist.duration = Utils.shared.getPlaylistDuration(from: tracklist.map { $0.path })
+                                PlaylistManager.shared.replacePlaylist(playlist)
+                                showPopup = "Added to playlist"
+                                presentationMode.wrappedValue.dismiss()
+                            }
                         }) {
                             HStack() {
                                 if let artwork = element.artwork {
@@ -97,15 +114,26 @@ struct AddToPlaylistView: View {
         }
         .onAppear {
             playlists = PlaylistManager.shared.fetchPlaylists()
-            for playlist in playlists {
-                let idSet = Set(playlist.tracklist)
-                if idSet.contains(track.id) {
-                    playlists.removeAll { $0.id == playlist.id }
+            if let track = track {
+                for playlist in playlists {
+                    let idSet = Set(playlist.tracklist)
+                    if idSet.contains(track.id) {
+                        playlists.removeAll { $0.id == playlist.id }
+                    }
+                }
+            }
+            else {
+                for playlist in playlists {
+                    let idSet = Set(playlist.tracklist)
+                    let tracklistIdSet = Set(tracklist.map { $0.id })
+                    if tracklistIdSet.isSubset(of: idSet) {
+                        playlists.removeAll { $0.id == playlist.id }
+                    }
                 }
             }
         }
         .sheet(isPresented: $isAddPlaylistPresented) {
-            AddPlaylistView(isPresented: $isAddPlaylistPresented, showPopup: $showPopup, selectedTracks: [track])
+            AddPlaylistView(isPresented: $isAddPlaylistPresented, showPopup: $showPopup, selectedTracks: track != nil ? [track!] : tracklist)
                 .onDisappear {
                     if showPopup == "Created playlist" {
                         presentationMode.wrappedValue.dismiss()

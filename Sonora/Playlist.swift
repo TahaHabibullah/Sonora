@@ -85,13 +85,6 @@ class PlaylistManager {
         }
     }
     
-    func removeTrackFromPlaylist(for id: UUID, in playlist: Playlist) {
-        var replacement = playlist
-        let tracklist = playlist.tracklist.filter { $0 != id }
-        replacement.tracklist = tracklist
-        replacePlaylist(replacement)
-    }
-    
     func deletePlaylist(_ playlist: Playlist) {
         var playlists = fetchPlaylists()
         playlists.removeAll { $0.id == playlist.id }

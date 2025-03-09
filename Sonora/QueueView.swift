@@ -13,6 +13,7 @@ import MarqueeText
 struct QueueView: View {
     @EnvironmentObject var playQueue: PlayQueue
     @Binding var isPresented: Bool
+    @State private var showConfirmationDialog: Bool = false
     let selectionHaptics = UISelectionFeedbackGenerator()
     
     var body: some View {
@@ -134,6 +135,14 @@ struct QueueView: View {
                                     .font(.headline)
                                     .bold()
                                 Spacer()
+                                Button(action: {
+                                    showConfirmationDialog = true
+                                }) {
+                                    Text("Clear")
+                                        .font(.subheadline)
+                                        .bold()
+                                        .foregroundColor(.gray)
+                                }
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                             .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
@@ -243,7 +252,7 @@ struct QueueView: View {
                                             .frame(width: 20, height: 20)
                                             .foregroundColor(.blue)
                                     }
-                                    .padding(.leading, 15)
+                                    .padding(.leading, 20)
                                     .disabled(playQueue.currentIndex == nil)
                                 }
                                 else {
@@ -257,7 +266,7 @@ struct QueueView: View {
                                             .frame(width: 20, height: 20)
                                             .foregroundColor(.gray)
                                     }
-                                    .padding(.leading, 15)
+                                    .padding(.leading, 20)
                                     .disabled(playQueue.tracklist.isEmpty)
                                 }
                             }
@@ -300,6 +309,17 @@ struct QueueView: View {
                 Spacer()
             }
         }
+        .confirmationDialog("Are you sure you want to clear the queue?",
+                            isPresented: $showConfirmationDialog,
+                            titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                playQueue.clearTrackQueue()
+                showConfirmationDialog = false
+            }
+            Button("Cancel", role: .cancel) {
+                showConfirmationDialog = false
+            }
+        }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.black)
     }
@@ -307,22 +327,14 @@ struct QueueView: View {
     private func deleteQueueTrack(at offsets: IndexSet) {
         playQueue.trackQueue.remove(atOffsets: offsets)
         if offsets.first == 0 {
-            DispatchQueue.global(qos: .background).async {
-                DispatchQueue.main.async {
-                    playQueue.replaceNextItem()
-                }
-            }
+            playQueue.replaceNextItem()
         }
     }
 
     private func moveQueueTrack(from source: IndexSet, to destination: Int) {
         playQueue.trackQueue.move(fromOffsets: source, toOffset: destination)
         if destination == 0 {
-            DispatchQueue.global(qos: .background).async {
-                DispatchQueue.main.async {
-                    playQueue.replaceNextItem()
-                }
-            }
+            playQueue.replaceNextItem()
         }
     }
     
@@ -331,11 +343,7 @@ struct QueueView: View {
             if let currentIndex = playQueue.currentIndex {
                 playQueue.tracklist.remove(at: index + currentIndex+1)
                 if index == 0 {
-                    DispatchQueue.global(qos: .background).async {
-                        DispatchQueue.main.async {
-                            playQueue.replaceNextItem()
-                        }
-                    }
+                    playQueue.replaceNextItem()
                 }
             }
         }
@@ -348,11 +356,7 @@ struct QueueView: View {
                 indexOffset.insert(index + currentIndex+1)
                 playQueue.tracklist.move(fromOffsets: indexOffset, toOffset: destination + currentIndex+1)
                 if destination == 0 {
-                    DispatchQueue.global(qos: .background).async {
-                        DispatchQueue.main.async {
-                            playQueue.replaceNextItem()
-                        }
-                    }
+                    playQueue.replaceNextItem()
                 }
             }
         }

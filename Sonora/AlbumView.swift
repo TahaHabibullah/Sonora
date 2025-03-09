@@ -206,12 +206,22 @@ struct AlbumView: View {
                                         Label("Add To Playlist", systemImage: "plus.square")
                                     }
                                     Button(action: {
-                                        playQueue.addToQueue(track)
+                                        playQueue.prependToQueue(track)
                                         withAnimation(.linear(duration: 0.25)) {
                                             showPopup = "Added to queue"
                                         }
                                     }) {
-                                        Label("Add To Queue", systemImage: "text.badge.plus")
+                                        Label("Play Next", systemImage: "text.line.first.and.arrowtriangle.forward")
+                                    }
+                                    if !playQueue.trackQueue.isEmpty {
+                                        Button(action: {
+                                            playQueue.appendToQueue(track)
+                                            withAnimation(.linear(duration: 0.25)) {
+                                                showPopup = "Added to queue"
+                                            }
+                                        }) {
+                                            Label("Add To Queue", systemImage: "text.line.last.and.arrowtriangle.forward")
+                                        }
                                     }
                                     Button(action: {
                                         trackToEdit = track

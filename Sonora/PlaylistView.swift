@@ -206,12 +206,22 @@ struct PlaylistView: View {
                                     Label("Add To Playlist", systemImage: "plus.square")
                                 }
                                 Button(action: {
-                                    playQueue.addToQueue(element)
+                                    playQueue.prependToQueue(element)
                                     withAnimation(.linear(duration: 0.25)) {
                                         showPopup = "Added to queue"
                                     }
                                 }) {
-                                    Label("Add To Queue", systemImage: "text.badge.plus")
+                                    Label("Play Next", systemImage: "text.line.first.and.arrowtriangle.forward")
+                                }
+                                if !playQueue.trackQueue.isEmpty {
+                                    Button(action: {
+                                        playQueue.appendToQueue(element)
+                                        withAnimation(.linear(duration: 0.25)) {
+                                            showPopup = "Added to queue"
+                                        }
+                                    }) {
+                                        Label("Add To Queue", systemImage: "text.line.last.and.arrowtriangle.forward")
+                                    }
                                 }
                                 Button(action: {
                                     trackToEdit = element
@@ -219,8 +229,9 @@ struct PlaylistView: View {
                                     Label("Edit Track Details", systemImage: "pencil")
                                 }
                                 Button(role: .destructive, action: {
-                                    PlaylistManager.shared.removeTrackFromPlaylist(for: element.id, in: playlist)
+                                    playlist.tracklist.remove(at: index)
                                     tracklist.remove(at: index)
+                                    PlaylistManager.shared.replacePlaylist(playlist)
                                 }) {
                                     Label("Delete From Playlist", systemImage: "trash")
                                 }
