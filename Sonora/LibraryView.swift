@@ -14,6 +14,7 @@ struct LibraryView: View {
     @State private var isAddAlbumPresented = false
     @State private var isAddTracksPresented = false
     @State private var isFilePickerPresented = false
+    @State private var isFilePickerForAlbumPresented = false
     @State private var creatingAlbum = false
     @State private var isAddToPlaylistPresented = false
     @State private var showDeleteConfirmation = false
@@ -523,8 +524,7 @@ struct LibraryView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: {
-                            creatingAlbum = true
-                            isFilePickerPresented = true
+                            isFilePickerForAlbumPresented = true
                         }) {
                             Label("Create New Album", systemImage: "rectangle.stack.badge.plus")
                         }
@@ -606,16 +606,27 @@ struct LibraryView: View {
                 }
             }
             .fileImporter(
-                isPresented: $isFilePickerPresented,
+                isPresented: Binding(get: { isFilePickerPresented || isFilePickerForAlbumPresented },
+                                     set: { newValue in
+                                         if !newValue {
+                                             if isFilePickerForAlbumPresented {
+                                                 creatingAlbum = true
+                                             }
+                                             else {
+                                                 creatingAlbum = false
+                                             }
+                                             isFilePickerPresented = false
+                                             isFilePickerForAlbumPresented = false
+                                         }
+                                     }),
                 allowedContentTypes: [.audio],
                 allowsMultipleSelection: true
             ) { result in
+                handleFileSelection(result: result)
                 if creatingAlbum {
-                    handleFileSelection(result: result)
                     isAddAlbumPresented = true
                 }
                 else {
-                    handleFileSelection(result: result)
                     isAddTracksPresented = true
                 }
             }

@@ -12,7 +12,7 @@ struct AddTracksView: View {
     @Binding var isPresented: Bool
     @Binding var showPopup: String
     @State var selectedFiles: [URL]
-    @State private var tracksToAdd: [(String?, String?, String?, UIImage?)] = []
+    @State private var tracksToAdd: [(String?, String?, String?, UIImage?, Int?)] = []
     @State private var isFilePickerPresented = false
     
     var body: some View {

@@ -20,6 +20,7 @@ struct AddAlbumView: View {
     @State private var isFilePickerImagesPresented = false
     @State private var isImagePickerPresented = false
     @State private var showImportOptions = false
+    @State private var selectedTrackNums: [Int?] = []
 
     var body: some View {
         NavigationView {
@@ -137,8 +138,14 @@ struct AddAlbumView: View {
                                         .truncationMode(.tail)
                                 }
                                 Spacer()
-                                Text("\(index+1)")
-                                    .foregroundColor(.gray)
+                                if index < selectedTrackNums.count {
+                                    Text("\(selectedTrackNums[index] ?? index+1)")
+                                        .foregroundColor(.gray)
+                                }
+                                else {
+                                    Text("\(index+1)")
+                                        .foregroundColor(.gray)
+                                }
                                 Image(systemName: "line.3.horizontal")
                                     .foregroundColor(.gray)
                                     .padding(.horizontal, 10)
@@ -217,7 +224,7 @@ struct AddAlbumView: View {
         }
         .onAppear {
             let metadata = Utils.shared.fetchMetadata(from: selectedFiles)
-            for (title, artist, album, artwork) in metadata {
+            for (title, artist, album, artwork, trackNum) in metadata {
                 if let artwork = artwork {
                     if albumArtwork == nil {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -238,7 +245,18 @@ struct AddAlbumView: View {
                 if let title = title {
                     selectedTitles.append(title)
                 }
+                selectedTrackNums.append(trackNum)
             }
+            let sortedIndices = selectedTrackNums.enumerated().sorted { curr, next in
+                guard let num0 = curr.element, let num1 = next.element else {
+                    return curr.element != nil
+                }
+                return num0 < num1
+            }.map { $0.offset }
+            
+            selectedTrackNums = sortedIndices.map { selectedTrackNums[$0] }
+            selectedFiles = sortedIndices.map { selectedFiles[$0] }
+            selectedTitles = sortedIndices.map { selectedTitles[$0] }
         }
         .fileImporter(
             isPresented: $isFilePickerAudioPresented,
@@ -255,11 +273,13 @@ struct AddAlbumView: View {
     private func deleteFile(at offsets: IndexSet) {
         selectedFiles.remove(atOffsets: offsets)
         selectedTitles.remove(atOffsets: offsets)
+        selectedTrackNums.remove(atOffsets: offsets)
     }
 
     private func moveFile(from source: IndexSet, to destination: Int) {
         selectedFiles.move(fromOffsets: source, toOffset: destination)
         selectedTitles.move(fromOffsets: source, toOffset: destination)
+        selectedTrackNums.move(fromOffsets: source, toOffset: destination)
     }
     
     private func handleFileSelection(result: Result<[URL], Error>) {
@@ -268,7 +288,7 @@ struct AddAlbumView: View {
             urls.map { guard $0.startAccessingSecurityScopedResource() else { return } }
             selectedFiles.append(contentsOf: urls)
             let metadata = Utils.shared.fetchMetadata(from: urls)
-            for (title, artist, album, artwork) in metadata {
+            for (title, artist, album, artwork, trackNum) in metadata {
                 if let artwork = artwork {
                     if albumArtwork == nil {
                         albumArtwork = artwork
@@ -284,8 +304,22 @@ struct AddAlbumView: View {
                         artistName = artist
                     }
                 }
-                selectedTitles.append(title)
+                if let title = title {
+                    selectedTitles.append(title)
+                }
+                selectedTrackNums.append(trackNum)
             }
+            let sortedIndices = selectedTrackNums.enumerated().sorted { curr, next in
+                guard let num0 = curr.element, let num1 = next.element else {
+                    return curr.element != nil
+                }
+                return num0 < num1
+            }.map { $0.offset }
+            
+            selectedTrackNums = sortedIndices.map { selectedTrackNums[$0] }
+            selectedFiles = sortedIndices.map { selectedFiles[$0] }
+            selectedTitles = sortedIndices.map { selectedTitles[$0] }
+            
         case .failure(let error):
             print("File selection error: \(error.localizedDescription)")
         }

@@ -351,8 +351,7 @@ class Utils {
     
     func handleNewImports(imports: (albums: [String : (tracks: [URL], artwork: UIImage?)], looseTracks: [URL])) {
         var looseTrackPaths: [String] = []
-        var looseTrackMetadata: [(String?, String?, String?, UIImage?)] = []
-        print(Utils.shared.fetchMetadata(from: imports.looseTracks))
+        var looseTrackMetadata: [(String?, String?, String?, UIImage?, Int?)] = []
         if !imports.looseTracks.isEmpty {
             looseTrackMetadata.append(contentsOf: Utils.shared.fetchMetadata(from: imports.looseTracks))
             looseTrackPaths = Utils.shared.moveLooseTracksImportToDocuments(sourceURLs: imports.looseTracks)
@@ -380,9 +379,10 @@ class Utils {
             var albumName: String = name
             var albumArtist: String = "Unknown Artist"
             var trackTitles: [String?] = []
+            var trackNumbers: [Int?] = []
             
             let metadata = Utils.shared.fetchMetadata(from: tracks)
-            for (title, artist, album, artwork) in metadata {
+            for (title, artist, album, artwork, trackNum) in metadata {
                 if let artwork = artwork {
                     if albumArtwork == nil {
                         albumArtwork = artwork
@@ -401,10 +401,21 @@ class Utils {
                 if let title = title {
                     trackTitles.append(title)
                 }
+                trackNumbers.append(trackNum)
             }
+            let sortedIndices = trackNumbers.enumerated().sorted { curr, next in
+                guard let num0 = curr.element, let num1 = next.element else {
+                    return curr.element != nil
+                }
+                return num0 < num1
+            }.map { $0.offset }
+            
+            trackNumbers = sortedIndices.map { trackNumbers[$0] }
+            trackTitles = sortedIndices.map { trackTitles[$0] }
             
             let tuple = Utils.shared.moveAlbumImportToDocuments(sourceURLs: tracks, name: name)
-            let filePaths = tuple.first
+            var filePaths = tuple.first
+            filePaths = sortedIndices.map { filePaths[$0] }
             let directory = tuple.last
             let artworkPath = directory + "/artwork.jpg"
             let smallArtworkPath = directory + "/artwork_small.jpg"
@@ -455,16 +466,17 @@ class Utils {
         }
     }
 
-    func fetchMetadata(from urls: [URL]) -> [(String?, String?, String?, UIImage?)] {
-        var results: [(String?, String?, String?, UIImage?)] = []
+    func fetchMetadata(from urls: [URL]) -> [(String?, String?, String?, UIImage?, Int?)] {
+        var results: [(String?, String?, String?, UIImage?, Int?)] = []
         
         for url in urls {
             let asset = AVAsset(url: url)
-            let metadata = asset.commonMetadata
+            let metadata = asset.metadata
             var title: String?
             var artist: String?
             var album: String?
             var artwork: UIImage?
+            var trackNum: Int?
             
             for item in metadata {
                 switch item.commonKey {
@@ -482,9 +494,13 @@ class Utils {
                     break
                 }
             }
-            results.append((title, artist, album, artwork))
+            if let item = AVMetadataItem.metadataItems(from: metadata, filteredByIdentifier: .id3MetadataTrackNumber).first {
+                if let num = item.stringValue {
+                    trackNum = Int(num)
+                }
+            }
+            results.append((title, artist, album, artwork, trackNum))
         }
-        print(results)
         return results
     }
 }
