@@ -11,10 +11,11 @@ import AVFoundation
 struct AddAlbumView: View {
     @Binding var isPresented: Bool
     @Binding var showPopup: String
+    @State var selectedFiles: [URL] = []
     @State private var albumName: String = ""
-    @State private var artist: String = ""
+    @State private var artistName: String = ""
     @State private var albumArtwork: UIImage? = nil
-    @State private var selectedFiles: [URL] = []
+    @State private var selectedTitles: [String?] = []
     @State private var isFilePickerAudioPresented = false
     @State private var isFilePickerImagesPresented = false
     @State private var isImagePickerPresented = false
@@ -88,7 +89,7 @@ struct AddAlbumView: View {
                                     .foregroundColor(.gray)
                                 Spacer()
                             }
-                            TextField("", text: $artist)
+                            TextField("", text: $artistName)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 5)
                                 .overlay(
@@ -118,9 +119,23 @@ struct AddAlbumView: View {
                         }
                         ForEach(Array(selectedFiles.enumerated()), id: \.element) { index, element in
                             HStack {
-                                Text(element.deletingPathExtension().lastPathComponent)
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
+                                if index < selectedTitles.count {
+                                    if let title = selectedTitles[index] {
+                                        Text(title)
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
+                                    }
+                                    else {
+                                        Text(element.deletingPathExtension().lastPathComponent)
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
+                                    }
+                                }
+                                else {
+                                    Text(element.deletingPathExtension().lastPathComponent)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                }
                                 Spacer()
                                 Text("\(index+1)")
                                     .foregroundColor(.gray)
@@ -163,13 +178,13 @@ struct AddAlbumView: View {
                         let resizedArtwork = Utils.shared.resizeImage(image: albumArtwork, newSize: CGSize(width: 600, height: 600))
                         let resizedArtworkSmall = Utils.shared.resizeImage(image: albumArtwork, newSize: CGSize(width: 100, height: 100))
                         Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: directory)
-                        let tracklist = filePaths.map { Track(artist: artist,
+                        let tracklist = filePaths.map { Track(artist: artistName,
                                                               artwork: artworkPath,
                                                               smallArtwork: smallArtworkPath,
                                                               path: $0) }
                         
                         let newAlbum = Album(name: albumName,
-                                             artist: artist,
+                                             artist: artistName,
                                              artwork: artworkPath,
                                              smallArtwork: smallArtworkPath,
                                              directory: directory)
@@ -200,6 +215,31 @@ struct AddAlbumView: View {
                 }
             }
         }
+        .onAppear {
+            let metadata = Utils.shared.fetchMetadata(from: selectedFiles)
+            for (title, artist, album, artwork) in metadata {
+                if let artwork = artwork {
+                    if albumArtwork == nil {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            albumArtwork = artwork
+                        }
+                    }
+                }
+                if let name = album {
+                    if albumName.isEmpty {
+                        albumName = name
+                    }
+                }
+                if let artist = artist {
+                    if artistName.isEmpty {
+                        artistName = artist
+                    }
+                }
+                if let title = title {
+                    selectedTitles.append(title)
+                }
+            }
+        }
         .fileImporter(
             isPresented: $isFilePickerAudioPresented,
             allowedContentTypes: [.audio],
@@ -214,10 +254,12 @@ struct AddAlbumView: View {
         
     private func deleteFile(at offsets: IndexSet) {
         selectedFiles.remove(atOffsets: offsets)
+        selectedTitles.remove(atOffsets: offsets)
     }
 
     private func moveFile(from source: IndexSet, to destination: Int) {
         selectedFiles.move(fromOffsets: source, toOffset: destination)
+        selectedTitles.move(fromOffsets: source, toOffset: destination)
     }
     
     private func handleFileSelection(result: Result<[URL], Error>) {
@@ -225,6 +267,25 @@ struct AddAlbumView: View {
         case .success(let urls):
             urls.map { guard $0.startAccessingSecurityScopedResource() else { return } }
             selectedFiles.append(contentsOf: urls)
+            let metadata = Utils.shared.fetchMetadata(from: urls)
+            for (title, artist, album, artwork) in metadata {
+                if let artwork = artwork {
+                    if albumArtwork == nil {
+                        albumArtwork = artwork
+                    }
+                }
+                if let name = album {
+                    if albumName.isEmpty {
+                        albumName = name
+                    }
+                }
+                if let artist = artist {
+                    if artistName.isEmpty {
+                        artistName = artist
+                    }
+                }
+                selectedTitles.append(title)
+            }
         case .failure(let error):
             print("File selection error: \(error.localizedDescription)")
         }

@@ -14,9 +14,11 @@ struct LibraryView: View {
     @State private var isAddAlbumPresented = false
     @State private var isAddTracksPresented = false
     @State private var isFilePickerPresented = false
+    @State private var creatingAlbum = false
     @State private var isAddToPlaylistPresented = false
     @State private var showDeleteConfirmation = false
     @State private var showPopup: String = ""
+    @State private var showAlert: Bool = false
     @State private var selectedFiles: [URL] = []
     @State private var albums: [Album] = []
     @State private var looseTracks: [Track] = []
@@ -521,7 +523,8 @@ struct LibraryView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: {
-                            isAddAlbumPresented = true
+                            creatingAlbum = true
+                            isFilePickerPresented = true
                         }) {
                             Label("Create New Album", systemImage: "rectangle.stack.badge.plus")
                         }
@@ -531,12 +534,44 @@ struct LibraryView: View {
                         }) {
                             Label("Import Loose Tracks", systemImage: "music.note")
                         }
+                        
+                        Button(action: {
+                            let result = Utils.shared.checkDocumentsForNewImports()
+                            Utils.shared.handleNewImports(imports: result)
+                            
+                            albums = AlbumManager.shared.fetchAlbums()
+                            looseTracks = TrackManager.shared.fetchTracks(key: "Loose_Tracks")
+                            allTracks = TrackManager.shared.fetchAllTracks()
+                            if result.albums.count > 0 {
+                                if result.looseTracks.count > 0 {
+                                    showPopup = "Imported \(result.albums.count) Album(s) and \(result.looseTracks.count) Loose Track(s)"
+                                }
+                                else {
+                                    showPopup = "Imported \(result.albums.count) Album(s)"
+                                }
+                            }
+                            else if result.looseTracks.count > 0 {
+                                showPopup = "Imported \(result.looseTracks.count) Loose Track(s)"
+                            }
+                            else {
+                                showAlert = true
+                            }
+                        }) {
+                            Label("Sync Imported Files", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
+                        }
                     } label: {
                         HStack {
                             Image(systemName: "plus")
                             .font(.title2)
                         }
                         .foregroundColor(.blue)
+                    }
+                    .alert("Library Up to Date", isPresented: $showAlert) {
+                        Button("OK", role: .cancel) {
+                            showAlert = false
+                        }
+                    } message: {
+                        Text("No new imports were found.")
                     }
                     .simultaneousGesture(TapGesture().onEnded {
                         haptics.impactOccurred()
@@ -575,13 +610,20 @@ struct LibraryView: View {
                 allowedContentTypes: [.audio],
                 allowsMultipleSelection: true
             ) { result in
-                handleFileSelection(result: result)
-                isAddTracksPresented = true
+                if creatingAlbum {
+                    handleFileSelection(result: result)
+                    isAddAlbumPresented = true
+                }
+                else {
+                    handleFileSelection(result: result)
+                    isAddTracksPresented = true
+                }
             }
             .sheet(isPresented: $isAddAlbumPresented) {
-                AddAlbumView(isPresented: $isAddAlbumPresented, showPopup: $showPopup)
+                AddAlbumView(isPresented: $isAddAlbumPresented, showPopup: $showPopup, selectedFiles: selectedFiles)
                     .onDisappear {
                         albums = AlbumManager.shared.fetchAlbums()
+                        selectedFiles.removeAll()
                     }
             }
             .sheet(isPresented: $isAddTracksPresented) {

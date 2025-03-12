@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVFoundation
+import UniformTypeIdentifiers
 
 class Utils {
     static let shared = Utils()
@@ -134,6 +135,357 @@ class Utils {
         let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         let trackURL = documentsDirectory.appendingPathComponent(track.path)
         return AVPlayerItem(url: trackURL)
+    }
+    
+    func isAudioFile(url: URL) -> Bool {
+        guard let fileType = UTType(filenameExtension: url.pathExtension) else {
+            return false
+        }
+        return fileType.conforms(to: .audio)
+    }
+    
+    func isImageFile(url: URL) -> Bool {
+        guard let fileType = UTType(filenameExtension: url.pathExtension) else {
+            return false
+        }
+        return fileType.conforms(to: .image)
+    }
+    
+    func checkDocumentsForNewImports() -> (albums: [String : (tracks: [URL], artwork: UIImage?)], looseTracks: [URL]) {
+        let fileManager = FileManager.default
+        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let tracks = TrackManager.shared.getTracksDict()
+        var looseTracks: [URL] = []
+        var albums: [String : (tracks: [URL], artwork: UIImage?)] = [:]
+        
+        do {
+            let documentsContents = try fileManager.contentsOfDirectory(at: documentsDirectory,
+                                                                        includingPropertiesForKeys: nil,
+                                                                        options: [])
+            
+            for url in documentsContents {
+                var isDirectory: ObjCBool = false
+                fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory)
+                
+                if isDirectory.boolValue {
+                    var albumTracks: [URL] = []
+                    if tracks[url.lastPathComponent] == nil {
+                        url.startAccessingSecurityScopedResource()
+                        let albumContents = try fileManager.contentsOfDirectory(at: url,
+                                                                                includingPropertiesForKeys: nil,
+                                                                                options: [])
+                        
+                        var artwork: UIImage? = nil
+                        for subUrl in albumContents {
+                            if isAudioFile(url: subUrl) {
+                                albumTracks.append(subUrl)
+                            }
+                            else if isImageFile(url: subUrl) {
+                                if let image = UIImage(contentsOfFile: subUrl.path) {
+                                    if let currArtwork = artwork {
+                                        let currArea = currArtwork.size.width * currArtwork.size.height
+                                        let newArea = image.size.width * image.size.height
+                                        if newArea > currArea {
+                                            artwork = image
+                                        }
+                                    }
+                                    else {
+                                        artwork = image
+                                    }
+                                }
+                            }
+                        }
+                        if !albumTracks.isEmpty {
+                            albums[url.lastPathComponent] = (albumTracks, artwork)
+                        }
+                    }
+                }
+                else {
+                    if isAudioFile(url: url) {
+                        url.startAccessingSecurityScopedResource()
+                        looseTracks.append(url)
+                    }
+                }
+            }
+        } catch {
+            
+        }
+        
+        return (albums, looseTracks)
+    }
+    
+    func moveLooseTracksImportToDocuments(sourceURLs: [URL]) -> [String] {
+        let fileManager = FileManager.default
+        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let looseTracksDirectory = documentsURL.appendingPathComponent("Loose_Tracks")
+        var filePaths: [String] = []
+        
+        
+        if !Utils.shared.directoryExists(at: looseTracksDirectory) {
+            do {
+                try fileManager.createDirectory(at: looseTracksDirectory, withIntermediateDirectories: true, attributes: nil)
+                try looseTracksDirectory.disableFileProtection()
+            } catch {
+                print("Error creating directory: \(error.localizedDescription)")
+            }
+        }
+        
+        for sourceURL in sourceURLs {
+            var destinationURL = looseTracksDirectory.appendingPathComponent(sourceURL.lastPathComponent)
+            var count = 1
+            while fileManager.fileExists(atPath: destinationURL.path) {
+                if count > 1 {
+                    let newDestinationURL = destinationURL.path.replacingOccurrences(
+                        of: "\(sourceURL.deletingPathExtension().lastPathComponent)__\(count-1)",
+                        with: "\(sourceURL.deletingPathExtension().lastPathComponent)__\(count)")
+                    destinationURL = URL(fileURLWithPath: newDestinationURL)
+                }
+                else {
+                    let newDestinationURL = destinationURL.path.replacingOccurrences(
+                        of: "\(sourceURL.deletingPathExtension().lastPathComponent)",
+                        with: "\(sourceURL.deletingPathExtension().lastPathComponent)__1")
+                    destinationURL = URL(fileURLWithPath: newDestinationURL)
+                }
+                count+=1
+            }
+            
+            var filePath = ""
+            let title = sourceURL.deletingPathExtension().lastPathComponent
+            let ext = sourceURL.pathExtension
+            if count > 1 {
+                filePath = "Loose_Tracks/\(title)__\(count-1).\(ext)"
+            }
+            else {
+                filePath = "Loose_Tracks/\(title).\(ext)"
+            }
+        
+            do {
+                try fileManager.moveItem(at: sourceURL, to: destinationURL)
+                try destinationURL.disableFileProtection()
+                filePaths.append(filePath)
+            } catch {
+                print("Unable to move file: \(error.localizedDescription)")
+            }
+        }
+        sourceURLs.map { $0.stopAccessingSecurityScopedResource() }
+        return filePaths
+    }
+    
+    func moveAlbumImportToDocuments(sourceURLs: [URL], name: String) -> (first: [String], last: String) {
+        let fileManager = FileManager.default
+        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        var sanitizedAlbumName = name.replacingOccurrences(of: "[^a-zA-Z0-9 ]", with: "_", options: .regularExpression)
+        var filePaths: [String] = []
+
+        if sanitizedAlbumName.isEmpty {
+            sanitizedAlbumName = "Untitled"
+        }
+        
+        var albumDirectory = documentsURL.appendingPathComponent(sanitizedAlbumName)
+        if sanitizedAlbumName == name {
+            do {
+                try albumDirectory.disableFileProtection()
+            } catch {
+                print("Error disabling directory protection: \(error.localizedDescription)")
+            }
+            
+            for sourceURL in sourceURLs {
+                let filePath = sanitizedAlbumName + "/" + sourceURL.lastPathComponent
+                
+                do {
+                    try sourceURL.disableFileProtection()
+                    filePaths.append(filePath)
+                } catch {
+                    print("Error disabling file protection: \(error.localizedDescription)")
+                }
+            }
+        }
+        else {
+            var count = 1
+            while Utils.shared.directoryExists(at: albumDirectory) {
+                if count > 1 {
+                    let newDirectory = albumDirectory.path.replacingOccurrences(
+                        of: "\(sanitizedAlbumName)__\(count-1)",
+                        with: "\(sanitizedAlbumName)__\(count)")
+                    albumDirectory = URL(fileURLWithPath: newDirectory)
+                }
+                else {
+                    let newDirectory = albumDirectory.path.replacingOccurrences(
+                        of: "\(sanitizedAlbumName)",
+                        with: "\(sanitizedAlbumName)__1")
+                    albumDirectory = URL(fileURLWithPath: newDirectory)
+                }
+                count+=1
+            }
+            
+            do {
+                try fileManager.createDirectory(at: albumDirectory, withIntermediateDirectories: true, attributes: nil)
+                try albumDirectory.disableFileProtection()
+            } catch {
+                print("Error creating directory: \(error.localizedDescription)")
+            }
+            
+            for sourceURL in sourceURLs {
+                let destinationURL = albumDirectory.appendingPathComponent(sourceURL.lastPathComponent)
+                let filePath = count > 1 ?
+                sanitizedAlbumName + "__\(count-1)/" + sourceURL.lastPathComponent :
+                sanitizedAlbumName + "/" + sourceURL.lastPathComponent
+                
+                if fileManager.fileExists(atPath: destinationURL.path) {
+                    continue
+                }
+                
+                do {
+                    try fileManager.moveItem(at: sourceURL, to: destinationURL)
+                    try destinationURL.disableFileProtection()
+                    filePaths.append(filePath)
+                } catch {
+                    print("Unable to move file: \(error.localizedDescription)")
+                }
+            }
+        }
+        let result = (first: filePaths, last: albumDirectory.lastPathComponent)
+        sourceURLs.map { $0.stopAccessingSecurityScopedResource() }
+        return result
+    }
+    
+    func handleNewImports(imports: (albums: [String : (tracks: [URL], artwork: UIImage?)], looseTracks: [URL])) {
+        var looseTrackPaths: [String] = []
+        var looseTrackMetadata: [(String?, String?, String?, UIImage?)] = []
+        print(Utils.shared.fetchMetadata(from: imports.looseTracks))
+        if !imports.looseTracks.isEmpty {
+            looseTrackMetadata.append(contentsOf: Utils.shared.fetchMetadata(from: imports.looseTracks))
+            looseTrackPaths = Utils.shared.moveLooseTracksImportToDocuments(sourceURLs: imports.looseTracks)
+        }
+        
+        for i in 0..<looseTrackPaths.count {
+            var trackArtist = "Unknown Artist"
+            var trackTitle = URL(fileURLWithPath: looseTrackPaths[i]).deletingPathExtension().lastPathComponent
+            if let artwork = looseTrackMetadata[i].3 {
+                let resizedArtwork = Utils.shared.resizeImage(image: artwork, newSize: CGSize(width: 600, height: 600))
+                let resizedArtworkSmall = Utils.shared.resizeImage(image: artwork, newSize: CGSize(width: 100, height: 100))
+                Utils.shared.copyLooseTrackImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, trackPath: looseTrackPaths[i])
+            }
+            if let artist = looseTrackMetadata[i].1 { trackArtist = artist }
+            if let title = looseTrackMetadata[i].0 { trackTitle = title }
+            
+            let artworkPath = "Loose_Tracks/" + URL(fileURLWithPath: looseTrackPaths[i]).deletingPathExtension().lastPathComponent + ".jpg"
+            let smallArtworkPath = "Loose_Tracks/" + URL(fileURLWithPath: looseTrackPaths[i]).deletingPathExtension().lastPathComponent + "_small.jpg"
+            let track = Track(artist: trackArtist, title: trackTitle, artwork: artworkPath, smallArtwork: smallArtworkPath, path: looseTrackPaths[i])
+            TrackManager.shared.addTrack(track, key: "Loose_Tracks")
+        }
+        
+        for (name, (tracks, artwork)) in imports.albums {
+            var albumArtwork: UIImage? = artwork
+            var albumName: String = name
+            var albumArtist: String = "Unknown Artist"
+            var trackTitles: [String?] = []
+            
+            let metadata = Utils.shared.fetchMetadata(from: tracks)
+            for (title, artist, album, artwork) in metadata {
+                if let artwork = artwork {
+                    if albumArtwork == nil {
+                        albumArtwork = artwork
+                    }
+                }
+                if let album = album {
+                    if albumName == name {
+                        albumName = album
+                    }
+                }
+                if let artist = artist {
+                    if albumArtist == "Unknown Artist" {
+                        albumArtist = artist
+                    }
+                }
+                if let title = title {
+                    trackTitles.append(title)
+                }
+            }
+            
+            let tuple = Utils.shared.moveAlbumImportToDocuments(sourceURLs: tracks, name: name)
+            let filePaths = tuple.first
+            let directory = tuple.last
+            let artworkPath = directory + "/artwork.jpg"
+            let smallArtworkPath = directory + "/artwork_small.jpg"
+            let resizedArtwork = Utils.shared.resizeImage(image: albumArtwork, newSize: CGSize(width: 600, height: 600))
+            let resizedArtworkSmall = Utils.shared.resizeImage(image: albumArtwork, newSize: CGSize(width: 100, height: 100))
+            Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: directory)
+            var tracklist: [Track] = []
+            if filePaths.count != trackTitles.count {
+                for path in filePaths {
+                    tracklist.append(Track(artist: albumArtist, artwork: artworkPath, smallArtwork: smallArtworkPath, path: path))
+                }
+            }
+            else {
+                for i in 0..<filePaths.count {
+                    if let title = trackTitles[i] {
+                        tracklist.append(Track(artist: albumArtist, title: title, artwork: artworkPath, smallArtwork: smallArtworkPath, path: filePaths[i]))
+                    }
+                    else {
+                        tracklist.append(Track(artist: albumArtist, artwork: artworkPath, smallArtwork: smallArtworkPath, path: filePaths[i]))
+                    }
+                }
+            }
+            
+            let newAlbum = Album(name: albumName,
+                                 artist: albumArtist,
+                                 artwork: artworkPath,
+                                 smallArtwork: smallArtworkPath,
+                                 directory: directory)
+            
+            if directory != name {
+                Utils.shared.deleteRemainingImportDirectory(path: name)
+            }
+            TrackManager.shared.addTracklist(tracklist, key: directory)
+            AlbumManager.shared.saveAlbum(newAlbum)
+        }
+    }
+    
+    func deleteRemainingImportDirectory(path: String) {
+        let fileManager = FileManager.default
+        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let directory = documentsDirectory.appendingPathComponent(path)
+        if fileManager.fileExists(atPath: directory.path) {
+            do {
+                try fileManager.removeItem(at: directory)
+            } catch {
+                print("Failed to delete directory: \(path)")
+            }
+        }
+    }
+
+    func fetchMetadata(from urls: [URL]) -> [(String?, String?, String?, UIImage?)] {
+        var results: [(String?, String?, String?, UIImage?)] = []
+        
+        for url in urls {
+            let asset = AVAsset(url: url)
+            let metadata = asset.commonMetadata
+            var title: String?
+            var artist: String?
+            var album: String?
+            var artwork: UIImage?
+            
+            for item in metadata {
+                switch item.commonKey {
+                case .commonKeyTitle:
+                    title = item.stringValue
+                case .commonKeyArtist:
+                    artist = item.stringValue
+                case .commonKeyAlbumName:
+                    album = item.stringValue
+                case .commonKeyArtwork:
+                    if let data = item.dataValue {
+                        artwork = UIImage(data: data)
+                    }
+                default:
+                    break
+                }
+            }
+            results.append((title, artist, album, artwork))
+        }
+        print(results)
+        return results
     }
 }
 

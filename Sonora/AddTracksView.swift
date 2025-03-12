@@ -12,6 +12,7 @@ struct AddTracksView: View {
     @Binding var isPresented: Bool
     @Binding var showPopup: String
     @State var selectedFiles: [URL]
+    @State private var tracksToAdd: [(String?, String?, String?, UIImage?)] = []
     @State private var isFilePickerPresented = false
     
     var body: some View {
@@ -30,17 +31,60 @@ struct AddTracksView: View {
                                     .foregroundColor(.gray)
                             }
                         }
-                        ForEach(Array(selectedFiles.enumerated()), id: \.element) { index, element in
+                        ForEach(Array(tracksToAdd.enumerated()), id: \.0) { index, element in
                             HStack {
-                                Text(element.deletingPathExtension().lastPathComponent)
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
+                                if let artwork = element.3 {
+                                    Image(uiImage: artwork)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 50, height: 50)
+                                        .animation(nil)
+                                }
+                                else {
+                                    Image(systemName: "music.note.list")
+                                        .font(.subheadline)
+                                        .frame(width: 50, height: 50)
+                                        .background(Color.gray.opacity(0.5))
+                                        .animation(nil)
+                                }
+                                VStack(spacing: 0) {
+                                    HStack {
+                                        if let title = element.0 {
+                                            Text(title)
+                                                .font(.subheadline)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                        }
+                                        else {
+                                            Text(selectedFiles[index].deletingPathExtension().lastPathComponent)
+                                                .font(.subheadline)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                        }
+                                        Spacer()
+                                    }
+                                    HStack {
+                                        if let artist = element.1 {
+                                            Text(artist)
+                                                .foregroundColor(.gray)
+                                                .font(.caption)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                        }
+                                        else {
+                                            Text("Unknown Artist")
+                                                .foregroundColor(.gray)
+                                                .font(.caption)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                        }
+                                        Spacer()
+                                    }
+                                }
                                 Spacer()
                                 Text("\(index+1)")
                                     .foregroundColor(.gray)
                             }
-                            .padding([.leading, .trailing])
-                            .listRowInsets(EdgeInsets())
                         }
                         .onDelete(perform: deleteFile)
                     }
@@ -57,10 +101,20 @@ struct AddTracksView: View {
                     trailing: Button("Save") {
                         if !selectedFiles.isEmpty {
                             let trackPaths = copyFilesToDocuments(sourceURLs: selectedFiles)
-                            for trackPath in trackPaths {
-                                let artworkPath = "Loose_Tracks/" + URL(fileURLWithPath: trackPath).deletingPathExtension().lastPathComponent + ".jpg"
-                                let smallArtworkPath = "Loose_Tracks/" + URL(fileURLWithPath: trackPath).deletingPathExtension().lastPathComponent + "_small.jpg"
-                                let track = Track(artist: "Unknown Artist", artwork: artworkPath, smallArtwork: smallArtworkPath, path: trackPath)
+                            for i in 0..<trackPaths.count {
+                                var trackArtist = "Unknown Artist"
+                                var trackTitle = URL(fileURLWithPath: trackPaths[i]).deletingPathExtension().lastPathComponent
+                                if let artwork = tracksToAdd[i].3 {
+                                    let resizedArtwork = Utils.shared.resizeImage(image: artwork, newSize: CGSize(width: 600, height: 600))
+                                    let resizedArtworkSmall = Utils.shared.resizeImage(image: artwork, newSize: CGSize(width: 100, height: 100))
+                                    Utils.shared.copyLooseTrackImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, trackPath: trackPaths[i])
+                                }
+                                if let artist = tracksToAdd[i].1 { trackArtist = artist }
+                                if let title = tracksToAdd[i].0 { trackTitle = title }
+                                
+                                let artworkPath = "Loose_Tracks/" + URL(fileURLWithPath: trackPaths[i]).deletingPathExtension().lastPathComponent + ".jpg"
+                                let smallArtworkPath = "Loose_Tracks/" + URL(fileURLWithPath: trackPaths[i]).deletingPathExtension().lastPathComponent + "_small.jpg"
+                                let track = Track(artist: trackArtist, title: trackTitle, artwork: artworkPath, smallArtwork: smallArtworkPath, path: trackPaths[i])
                                 TrackManager.shared.addTrack(track, key: "Loose_Tracks")
                             }
                         }
@@ -70,6 +124,11 @@ struct AddTracksView: View {
                     .foregroundColor(.blue)
                 )
                 .ignoresSafeArea(.keyboard, edges: .bottom)
+            }
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                tracksToAdd.append(contentsOf: Utils.shared.fetchMetadata(from: selectedFiles))
             }
         }
         .fileImporter(
@@ -90,6 +149,7 @@ struct AddTracksView: View {
         case .success(let urls):
             urls.map { $0.startAccessingSecurityScopedResource() }
             selectedFiles.append(contentsOf: urls)
+            tracksToAdd.append(contentsOf: Utils.shared.fetchMetadata(from: urls))
         case .failure(let error):
             print("File selection error: \(error.localizedDescription)")
         }

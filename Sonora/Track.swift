@@ -64,6 +64,10 @@ class TrackManager {
         }
         return orderedTracklist
     }
+    
+    func getTracksDict() -> [String: [Track]] {
+        return tracks
+    }
 
     func addTrack(_ track: Track, key: String) {
         if tracks[key] != nil {
