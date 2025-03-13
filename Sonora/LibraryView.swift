@@ -537,24 +537,28 @@ struct LibraryView: View {
                         
                         Button(action: {
                             let result = Utils.shared.checkDocumentsForNewImports()
-                            Utils.shared.handleNewImports(imports: result)
-                            
-                            albums = AlbumManager.shared.fetchAlbums()
-                            looseTracks = TrackManager.shared.fetchTracks(key: "Loose_Tracks")
-                            allTracks = TrackManager.shared.fetchAllTracks()
-                            if result.albums.count > 0 {
-                                if result.looseTracks.count > 0 {
-                                    showPopup = "Imported \(result.albums.count) Album(s) and \(result.looseTracks.count) Loose Track(s)"
+                            DispatchQueue.global(qos: .background).async {
+                                Utils.shared.handleNewImports(imports: result)
+                                
+                                DispatchQueue.main.async {
+                                    albums = AlbumManager.shared.fetchAlbums()
+                                    looseTracks = TrackManager.shared.fetchTracks(key: "Loose_Tracks")
+                                    allTracks = TrackManager.shared.fetchAllTracks()
+                                    if result.albums.count > 0 {
+                                        if result.looseTracks.count > 0 {
+                                            showPopup = "Imported \(result.albums.count) Album(s) and \(result.looseTracks.count) Loose Track(s)"
+                                        }
+                                        else {
+                                            showPopup = "Imported \(result.albums.count) Album(s)"
+                                        }
+                                    }
+                                    else if result.looseTracks.count > 0 {
+                                        showPopup = "Imported \(result.looseTracks.count) Loose Track(s)"
+                                    }
+                                    else {
+                                        showAlert = true
+                                    }
                                 }
-                                else {
-                                    showPopup = "Imported \(result.albums.count) Album(s)"
-                                }
-                            }
-                            else if result.looseTracks.count > 0 {
-                                showPopup = "Imported \(result.looseTracks.count) Loose Track(s)"
-                            }
-                            else {
-                                showAlert = true
                             }
                         }) {
                             Label("Sync Imported Files", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")

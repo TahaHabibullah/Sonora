@@ -231,7 +231,7 @@ class Utils {
         var filePaths: [String] = []
         
         
-        if !Utils.shared.directoryExists(at: looseTracksDirectory) {
+        if !directoryExists(at: looseTracksDirectory) {
             do {
                 try fileManager.createDirectory(at: looseTracksDirectory, withIntermediateDirectories: true, attributes: nil)
                 try looseTracksDirectory.disableFileProtection()
@@ -312,7 +312,7 @@ class Utils {
         }
         else {
             var count = 1
-            while Utils.shared.directoryExists(at: albumDirectory) {
+            while directoryExists(at: albumDirectory) {
                 if count > 1 {
                     let newDirectory = albumDirectory.path.replacingOccurrences(
                         of: "\(sanitizedAlbumName)__\(count-1)",
@@ -363,17 +363,17 @@ class Utils {
         var looseTrackPaths: [String] = []
         var looseTrackMetadata: [(String?, String?, String?, UIImage?, Int?)] = []
         if !imports.looseTracks.isEmpty {
-            looseTrackMetadata.append(contentsOf: Utils.shared.fetchMetadata(from: imports.looseTracks))
-            looseTrackPaths = Utils.shared.moveLooseTracksImportToDocuments(sourceURLs: imports.looseTracks)
+            looseTrackMetadata.append(contentsOf: fetchMetadata(from: imports.looseTracks))
+            looseTrackPaths = moveLooseTracksImportToDocuments(sourceURLs: imports.looseTracks)
         }
         
         for i in 0..<looseTrackPaths.count {
             var trackArtist = "Unknown Artist"
             var trackTitle = URL(fileURLWithPath: looseTrackPaths[i]).deletingPathExtension().lastPathComponent
             if let artwork = looseTrackMetadata[i].3 {
-                let resizedArtwork = Utils.shared.resizeImage(image: artwork, newSize: CGSize(width: 600, height: 600))
-                let resizedArtworkSmall = Utils.shared.resizeImage(image: artwork, newSize: CGSize(width: 100, height: 100))
-                Utils.shared.copyLooseTrackImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, trackPath: looseTrackPaths[i])
+                let resizedArtwork = resizeImage(image: artwork, newSize: CGSize(width: 600, height: 600))
+                let resizedArtworkSmall = resizeImage(image: artwork, newSize: CGSize(width: 100, height: 100))
+                copyLooseTrackImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, trackPath: looseTrackPaths[i])
             }
             if let artist = looseTrackMetadata[i].1 { trackArtist = artist }
             if let title = looseTrackMetadata[i].0 { trackTitle = title }
@@ -390,8 +390,10 @@ class Utils {
             var albumArtist: String = "Unknown Artist"
             var trackTitles: [String?] = []
             var trackNumbers: [Int?] = []
+            var trackArtists: [String?] = []
+            var artistFreq: [String: Int] = [:]
             
-            let metadata = Utils.shared.fetchMetadata(from: tracks)
+            let metadata = fetchMetadata(from: tracks)
             for (title, artist, album, artwork, trackNum) in metadata {
                 if let artwork = artwork {
                     if albumArtwork == nil {
@@ -404,12 +406,19 @@ class Utils {
                     }
                 }
                 if let artist = artist {
-                    if albumArtist == "Unknown Artist" {
-                        albumArtist = artist
+                    if artistFreq[artist] != nil {
+                        artistFreq[artist] = artistFreq[artist]! + 1
+                    }
+                    else {
+                        artistFreq[artist] = 1
                     }
                 }
+                trackArtists.append(artist)
                 trackTitles.append(title)
                 trackNumbers.append(trackNum)
+            }
+            if albumArtist == "Unknown Artist" {
+                albumArtist = artistFreq.max(by: { $0.value < $1.value })?.key ?? "Unknown Artist"
             }
             let sortedIndices = trackNumbers.enumerated().sorted { curr, next in
                 guard let num0 = curr.element, let num1 = next.element else {
@@ -419,23 +428,28 @@ class Utils {
             }.map { $0.offset }
             trackNumbers = sortedIndices.map { trackNumbers[$0] }
             trackTitles = sortedIndices.map { trackTitles[$0] }
+            trackArtists = sortedIndices.map { trackArtists[$0] }
             
-            let tuple = Utils.shared.moveAlbumImportToDocuments(sourceURLs: tracks, name: name)
+            let tuple = moveAlbumImportToDocuments(sourceURLs: tracks, name: name)
             var filePaths = tuple.first
             filePaths = sortedIndices.map { filePaths[$0] }
             let directory = tuple.last
             let artworkPath = directory + "/artwork.jpg"
             let smallArtworkPath = directory + "/artwork_small.jpg"
-            let resizedArtwork = Utils.shared.resizeImage(image: albumArtwork, newSize: CGSize(width: 600, height: 600))
-            let resizedArtworkSmall = Utils.shared.resizeImage(image: albumArtwork, newSize: CGSize(width: 100, height: 100))
-            Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: directory)
+            let resizedArtwork = resizeImage(image: albumArtwork, newSize: CGSize(width: 600, height: 600))
+            let resizedArtworkSmall = resizeImage(image: albumArtwork, newSize: CGSize(width: 100, height: 100))
+            copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: directory)
             var tracklist: [Track] = []
             for i in 0..<filePaths.count {
+                var trackArtist = albumArtist
+                if let artist = trackArtists[i] {
+                    trackArtist = artist
+                }
                 if let title = trackTitles[i] {
-                    tracklist.append(Track(artist: albumArtist, title: title, artwork: artworkPath, smallArtwork: smallArtworkPath, path: filePaths[i]))
+                    tracklist.append(Track(artist: trackArtist, title: title, artwork: artworkPath, smallArtwork: smallArtworkPath, path: filePaths[i]))
                 }
                 else {
-                    tracklist.append(Track(artist: albumArtist, artwork: artworkPath, smallArtwork: smallArtworkPath, path: filePaths[i]))
+                    tracklist.append(Track(artist: trackArtist, artwork: artworkPath, smallArtwork: smallArtworkPath, path: filePaths[i]))
                 }
             }
             
@@ -446,7 +460,7 @@ class Utils {
                                  directory: directory)
             
             if directory != name {
-                Utils.shared.deleteRemainingImportDirectory(path: name)
+                deleteRemainingImportDirectory(path: name)
             }
             TrackManager.shared.addTracklist(tracklist, key: directory)
             AlbumManager.shared.saveAlbum(newAlbum)

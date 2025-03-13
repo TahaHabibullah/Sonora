@@ -13,10 +13,12 @@ struct AddAlbumView: View {
     @Binding var showPopup: String
     @State var selectedFiles: [URL] = []
     @State private var albumName: String = ""
-    @State private var artistName: String = ""
+    @State private var albumArtist: String = ""
     @State private var albumArtwork: UIImage? = nil
     @State private var selectedTitles: [String?] = []
+    @State private var selectedTrackArtists: [String?] = []
     @State private var selectedTrackNums: [Int?] = []
+    @State private var artistFreq: [String: Int] = [:]
     @State private var isFilePickerAudioPresented = false
     @State private var isFilePickerImagesPresented = false
     @State private var isImagePickerPresented = false
@@ -90,7 +92,7 @@ struct AddAlbumView: View {
                                     .foregroundColor(.gray)
                                 Spacer()
                             }
-                            TextField("", text: $artistName)
+                            TextField("", text: $albumArtist)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 5)
                                 .overlay(
@@ -120,22 +122,70 @@ struct AddAlbumView: View {
                         }
                         ForEach(Array(selectedFiles.enumerated()), id: \.element) { index, element in
                             HStack {
-                                if index < selectedTitles.count {
-                                    if let title = selectedTitles[index] {
-                                        Text(title)
-                                            .lineLimit(1)
-                                            .truncationMode(.tail)
+                                VStack(spacing: 0) {
+                                    HStack {
+                                        if index < selectedTitles.count {
+                                            if let title = selectedTitles[index] {
+                                                Text(title)
+                                                    .font(.subheadline)
+                                                    .lineLimit(1)
+                                                    .truncationMode(.tail)
+                                            }
+                                            else {
+                                                Text(element.deletingPathExtension().lastPathComponent)
+                                                    .font(.subheadline)
+                                                    .lineLimit(1)
+                                                    .truncationMode(.tail)
+                                            }
+                                        }
+                                        else {
+                                            Text(element.deletingPathExtension().lastPathComponent)
+                                                .font(.subheadline)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                        }
+                                        Spacer()
                                     }
-                                    else {
-                                        Text(element.deletingPathExtension().lastPathComponent)
-                                            .lineLimit(1)
-                                            .truncationMode(.tail)
+                                    HStack {
+                                        if index < selectedTrackArtists.count {
+                                            if let artist = selectedTrackArtists[index] {
+                                                Text(artist)
+                                                    .font(.caption)
+                                                    .foregroundColor(.gray)
+                                                    .lineLimit(1)
+                                                    .truncationMode(.tail)
+                                            }
+                                            else if !albumArtist.isEmpty {
+                                                Text(albumArtist)
+                                                    .font(.caption)
+                                                    .foregroundColor(.gray)
+                                                    .lineLimit(1)
+                                                    .truncationMode(.tail)
+                                            }
+                                            else {
+                                                Text("Unknown Artist")
+                                                    .font(.caption)
+                                                    .foregroundColor(.gray)
+                                                    .lineLimit(1)
+                                                    .truncationMode(.tail)
+                                            }
+                                        }
+                                        else if !albumArtist.isEmpty {
+                                            Text(albumArtist)
+                                                .font(.caption)
+                                                .foregroundColor(.gray)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                        }
+                                        else {
+                                            Text("Unknown Artist")
+                                                .font(.caption)
+                                                .foregroundColor(.gray)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                        }
+                                        Spacer()
                                     }
-                                }
-                                else {
-                                    Text(element.deletingPathExtension().lastPathComponent)
-                                        .lineLimit(1)
-                                        .truncationMode(.tail)
                                 }
                                 Spacer()
                                 if index < selectedTrackNums.count {
@@ -187,15 +237,19 @@ struct AddAlbumView: View {
                         Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: directory)
                         var tracklist: [Track] = []
                         for i in 0..<filePaths.count {
+                            var trackArtist = albumArtist
+                            if let artist = selectedTrackArtists[i] {
+                                trackArtist = artist
+                            }
                             if let title = selectedTitles[i] {
-                                tracklist.append(Track(artist: artistName,
+                                tracklist.append(Track(artist: trackArtist,
                                                        title: title,
                                                        artwork: artworkPath,
                                                        smallArtwork: smallArtworkPath,
                                                        path: filePaths[i]))
                             }
                             else {
-                                tracklist.append(Track(artist: artistName,
+                                tracklist.append(Track(artist: trackArtist,
                                                        artwork: artworkPath,
                                                        smallArtwork: smallArtworkPath,
                                                        path: filePaths[i]))
@@ -203,7 +257,7 @@ struct AddAlbumView: View {
                         }
                         
                         let newAlbum = Album(name: albumName,
-                                             artist: artistName,
+                                             artist: albumArtist,
                                              artwork: artworkPath,
                                              smallArtwork: smallArtworkPath,
                                              directory: directory)
@@ -250,12 +304,19 @@ struct AddAlbumView: View {
                     }
                 }
                 if let artist = artist {
-                    if artistName.isEmpty {
-                        artistName = artist
+                    if artistFreq[artist] != nil {
+                        artistFreq[artist] = artistFreq[artist]! + 1
+                    }
+                    else {
+                        artistFreq[artist] = 1
                     }
                 }
+                selectedTrackArtists.append(artist)
                 selectedTitles.append(title)
                 selectedTrackNums.append(trackNum)
+            }
+            if albumArtist.isEmpty {
+                albumArtist = artistFreq.max(by: { $0.value < $1.value })?.key ?? ""
             }
             let sortedIndices = selectedTrackNums.enumerated().sorted { curr, next in
                 guard let num0 = curr.element, let num1 = next.element else {
@@ -267,6 +328,7 @@ struct AddAlbumView: View {
             selectedTrackNums = sortedIndices.map { selectedTrackNums[$0] }
             selectedFiles = sortedIndices.map { selectedFiles[$0] }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                selectedTrackArtists = sortedIndices.map { selectedTrackArtists[$0] }
                 selectedTitles = sortedIndices.map { selectedTitles[$0] }
             }
         }
@@ -312,12 +374,19 @@ struct AddAlbumView: View {
                     }
                 }
                 if let artist = artist {
-                    if artistName.isEmpty {
-                        artistName = artist
+                    if artistFreq[artist] != nil {
+                        artistFreq[artist] = artistFreq[artist]! + 1
+                    }
+                    else {
+                        artistFreq[artist] = 1
                     }
                 }
+                selectedTrackArtists.append(artist)
                 selectedTitles.append(title)
                 selectedTrackNums.append(trackNum)
+            }
+            if albumArtist.isEmpty {
+                albumArtist = artistFreq.max(by: { $0.value < $1.value })?.key ?? ""
             }
             let sortedIndices = selectedTrackNums.enumerated().sorted { curr, next in
                 guard let num0 = curr.element, let num1 = next.element else {
@@ -328,7 +397,10 @@ struct AddAlbumView: View {
             
             selectedTrackNums = sortedIndices.map { selectedTrackNums[$0] }
             selectedFiles = sortedIndices.map { selectedFiles[$0] }
-            selectedTitles = sortedIndices.map { selectedTitles[$0] }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                selectedTrackArtists = sortedIndices.map { selectedTrackArtists[$0] }
+                selectedTitles = sortedIndices.map { selectedTitles[$0] }
+            }
             
         case .failure(let error):
             print("File selection error: \(error.localizedDescription)")
