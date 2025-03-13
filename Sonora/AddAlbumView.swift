@@ -16,11 +16,11 @@ struct AddAlbumView: View {
     @State private var artistName: String = ""
     @State private var albumArtwork: UIImage? = nil
     @State private var selectedTitles: [String?] = []
+    @State private var selectedTrackNums: [Int?] = []
     @State private var isFilePickerAudioPresented = false
     @State private var isFilePickerImagesPresented = false
     @State private var isImagePickerPresented = false
     @State private var showImportOptions = false
-    @State private var selectedTrackNums: [Int?] = []
 
     var body: some View {
         NavigationView {
@@ -185,10 +185,22 @@ struct AddAlbumView: View {
                         let resizedArtwork = Utils.shared.resizeImage(image: albumArtwork, newSize: CGSize(width: 600, height: 600))
                         let resizedArtworkSmall = Utils.shared.resizeImage(image: albumArtwork, newSize: CGSize(width: 100, height: 100))
                         Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: directory)
-                        let tracklist = filePaths.map { Track(artist: artistName,
-                                                              artwork: artworkPath,
-                                                              smallArtwork: smallArtworkPath,
-                                                              path: $0) }
+                        var tracklist: [Track] = []
+                        for i in 0..<filePaths.count {
+                            if let title = selectedTitles[i] {
+                                tracklist.append(Track(artist: artistName,
+                                                       title: title,
+                                                       artwork: artworkPath,
+                                                       smallArtwork: smallArtworkPath,
+                                                       path: filePaths[i]))
+                            }
+                            else {
+                                tracklist.append(Track(artist: artistName,
+                                                       artwork: artworkPath,
+                                                       smallArtwork: smallArtworkPath,
+                                                       path: filePaths[i]))
+                            }
+                        }
                         
                         let newAlbum = Album(name: albumName,
                                              artist: artistName,
@@ -242,9 +254,7 @@ struct AddAlbumView: View {
                         artistName = artist
                     }
                 }
-                if let title = title {
-                    selectedTitles.append(title)
-                }
+                selectedTitles.append(title)
                 selectedTrackNums.append(trackNum)
             }
             let sortedIndices = selectedTrackNums.enumerated().sorted { curr, next in
@@ -256,7 +266,9 @@ struct AddAlbumView: View {
             
             selectedTrackNums = sortedIndices.map { selectedTrackNums[$0] }
             selectedFiles = sortedIndices.map { selectedFiles[$0] }
-            selectedTitles = sortedIndices.map { selectedTitles[$0] }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                selectedTitles = sortedIndices.map { selectedTitles[$0] }
+            }
         }
         .fileImporter(
             isPresented: $isFilePickerAudioPresented,
@@ -304,9 +316,7 @@ struct AddAlbumView: View {
                         artistName = artist
                     }
                 }
-                if let title = title {
-                    selectedTitles.append(title)
-                }
+                selectedTitles.append(title)
                 selectedTrackNums.append(trackNum)
             }
             let sortedIndices = selectedTrackNums.enumerated().sorted { curr, next in

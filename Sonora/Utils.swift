@@ -8,6 +8,7 @@
 import SwiftUI
 import AVFoundation
 import UniformTypeIdentifiers
+import AudioToolbox
 
 class Utils {
     static let shared = Utils()
@@ -142,6 +143,15 @@ class Utils {
             return false
         }
         return fileType.conforms(to: .audio)
+    }
+    
+    
+    func isFLACFile(url: URL) -> Bool {
+        let fileURL = URL(fileURLWithPath: url.path)
+        if let fileType = UTType(filenameExtension: fileURL.pathExtension) {
+            return fileType.conforms(to: .audio) && fileType.identifier == "org.xiph.flac"
+        }
+        return false
     }
     
     func isImageFile(url: URL) -> Bool {
@@ -398,9 +408,7 @@ class Utils {
                         albumArtist = artist
                     }
                 }
-                if let title = title {
-                    trackTitles.append(title)
-                }
+                trackTitles.append(title)
                 trackNumbers.append(trackNum)
             }
             let sortedIndices = trackNumbers.enumerated().sorted { curr, next in
@@ -409,7 +417,6 @@ class Utils {
                 }
                 return num0 < num1
             }.map { $0.offset }
-            
             trackNumbers = sortedIndices.map { trackNumbers[$0] }
             trackTitles = sortedIndices.map { trackTitles[$0] }
             
@@ -423,19 +430,12 @@ class Utils {
             let resizedArtworkSmall = Utils.shared.resizeImage(image: albumArtwork, newSize: CGSize(width: 100, height: 100))
             Utils.shared.copyImagesToDocuments(artwork: resizedArtwork, smallArtwork: resizedArtworkSmall, directory: directory)
             var tracklist: [Track] = []
-            if filePaths.count != trackTitles.count {
-                for path in filePaths {
-                    tracklist.append(Track(artist: albumArtist, artwork: artworkPath, smallArtwork: smallArtworkPath, path: path))
+            for i in 0..<filePaths.count {
+                if let title = trackTitles[i] {
+                    tracklist.append(Track(artist: albumArtist, title: title, artwork: artworkPath, smallArtwork: smallArtworkPath, path: filePaths[i]))
                 }
-            }
-            else {
-                for i in 0..<filePaths.count {
-                    if let title = trackTitles[i] {
-                        tracklist.append(Track(artist: albumArtist, title: title, artwork: artworkPath, smallArtwork: smallArtworkPath, path: filePaths[i]))
-                    }
-                    else {
-                        tracklist.append(Track(artist: albumArtist, artwork: artworkPath, smallArtwork: smallArtworkPath, path: filePaths[i]))
-                    }
+                else {
+                    tracklist.append(Track(artist: albumArtist, artwork: artworkPath, smallArtwork: smallArtworkPath, path: filePaths[i]))
                 }
             }
             
@@ -465,41 +465,103 @@ class Utils {
             }
         }
     }
+    
+    func getFLACMetadata(url: URL) -> (String?, String?, String?, UIImage?, Int?) {
+        let fileURL = URL(fileURLWithPath: url.path)
+        var audioFile: AudioFileID?
+        
+        let status = AudioFileOpenURL(fileURL as CFURL, .readPermission, 0, &audioFile)
+        
+        guard status == noErr, let audioFile = audioFile else {
+            print("Error opening file: \(status)")
+            return (nil, nil, nil, nil, nil)
+        }
+        
+        defer {
+            AudioFileClose(audioFile)
+        }
+        
+        var dictionarySize: UInt32 = 0
+        var isWritable: UInt32 = 0
+        let dictionaryStatus = AudioFileGetPropertyInfo(audioFile, kAudioFilePropertyInfoDictionary, &dictionarySize, &isWritable)
+        
+        guard dictionaryStatus == noErr else {
+            print("Error retrieving metadata dictionary info")
+            return (nil, nil, nil, nil, nil)
+        }
+        
+        var dictionary: CFDictionary?
+        let metadataStatus = AudioFileGetProperty(audioFile, kAudioFilePropertyInfoDictionary, &dictionarySize, &dictionary)
+        
+        guard metadataStatus == noErr, let metadataDict = dictionary as? [String: Any] else {
+            print("Error retrieving metadata dictionary")
+            return (nil, nil, nil, nil, nil)
+        }
+        
+        let title = metadataDict[kAFInfoDictionary_Title as String] as? String
+        let artist = metadataDict[kAFInfoDictionary_Artist as String] as? String
+        let album = metadataDict[kAFInfoDictionary_Album as String] as? String
+        let trackNumberString = metadataDict[kAFInfoDictionary_TrackNumber as String] as? String
+        var trackNumber: Int?
+        if let num = trackNumberString {
+            trackNumber = Int(num)
+        }
+        
+        var artwork: UIImage? = nil
+        var artworkSize: UInt32 = 0
+        if AudioFileGetPropertyInfo(audioFile, kAudioFilePropertyAlbumArtwork, &artworkSize, nil) == noErr {
+            var artworkData = Data(count: Int(artworkSize))
+            let result = artworkData.withUnsafeMutableBytes { buffer in
+                guard let baseAddress = buffer.baseAddress else { return kAudioFileUnspecifiedError }
+                return AudioFileGetProperty(audioFile, kAudioFilePropertyAlbumArtwork, &artworkSize, baseAddress)
+            }
+            if result == noErr {
+                artwork = UIImage(data: artworkData)
+            }
+        }
+        return (title, artist, album, artwork, trackNumber)
+    }
 
     func fetchMetadata(from urls: [URL]) -> [(String?, String?, String?, UIImage?, Int?)] {
         var results: [(String?, String?, String?, UIImage?, Int?)] = []
         
         for url in urls {
-            let asset = AVAsset(url: url)
-            let metadata = asset.metadata
-            var title: String?
-            var artist: String?
-            var album: String?
-            var artwork: UIImage?
-            var trackNum: Int?
-            
-            for item in metadata {
-                switch item.commonKey {
-                case .commonKeyTitle:
-                    title = item.stringValue
-                case .commonKeyArtist:
-                    artist = item.stringValue
-                case .commonKeyAlbumName:
-                    album = item.stringValue
-                case .commonKeyArtwork:
-                    if let data = item.dataValue {
-                        artwork = UIImage(data: data)
+            if isFLACFile(url: url) {
+                let result = getFLACMetadata(url: url)
+                results.append(result)
+            }
+            else {
+                let asset = AVAsset(url: url)
+                let metadata = asset.metadata
+                var title: String?
+                var artist: String?
+                var album: String?
+                var artwork: UIImage?
+                var trackNum: Int?
+                
+                for item in metadata {
+                    switch item.commonKey {
+                    case .commonKeyTitle:
+                        title = item.stringValue
+                    case .commonKeyArtist:
+                        artist = item.stringValue
+                    case .commonKeyAlbumName:
+                        album = item.stringValue
+                    case .commonKeyArtwork:
+                        if let data = item.dataValue {
+                            artwork = UIImage(data: data)
+                        }
+                    default:
+                        break
                     }
-                default:
-                    break
                 }
-            }
-            if let item = AVMetadataItem.metadataItems(from: metadata, filteredByIdentifier: .id3MetadataTrackNumber).first {
-                if let num = item.stringValue {
-                    trackNum = Int(num)
+                if let item = AVMetadataItem.metadataItems(from: metadata, filteredByIdentifier: .id3MetadataTrackNumber).first {
+                    if let num = item.stringValue {
+                        trackNum = Int(num)
+                    }
                 }
+                results.append((title, artist, album, artwork, trackNum))
             }
-            results.append((title, artist, album, artwork, trackNum))
         }
         return results
     }
